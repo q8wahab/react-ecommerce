@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { addCart } from "../redux/action";
+import { toggleWishlist } from "../store/wishlist/slice";
 
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -24,6 +25,10 @@ const Products = () => {
 
   const mounted = useRef(true);
   const dispatch = useDispatch();
+
+  // حالة الـ Wishlist
+  const wishlist = useSelector((s) => s.wishlist || []);
+  const inWishlist = (id) => wishlist.some((w) => w.id === id);
 
   const addProduct = (product) => {
     dispatch(addCart(product));
@@ -212,67 +217,82 @@ const Products = () => {
         {loading ? (
           <LoadingView />
         ) : (
-          pageItems.map((product) => (
-            <div
-              id={product.id}
-              key={product.id}
-              className="col-md-4 col-sm-6 col-12 mb-4"
-            >
-              <div className="card text-center h-100 d-flex">
-                <div
-                  className="p-3"
-                  style={{
-                    height: 300,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <img
-                    className="img-fluid"
-                    src={product.image}
-                    alt={product.title}
-                    style={{ maxHeight: "100%" }}
-                  />
-                </div>
-
-                <div className="card-body d-flex flex-column">
-                  <h5 className="card-title">
-                    {product.title.length > 40
-                      ? product.title.substring(0, 40) + "..."
-                      : product.title}
-                  </h5>
-                  <p
-                    className="text-muted mb-2"
-                    title={`Rating: ${product.rating?.rate ?? 0}`}
+          pageItems.map((product) => {
+            const wished = inWishlist(product.id);
+            return (
+              <div
+                id={product.id}
+                key={product.id}
+                className="col-md-4 col-sm-6 col-12 mb-4"
+              >
+                <div className="card text-center h-100 d-flex">
+                  <div
+                    className="p-3"
+                    style={{
+                      height: 300,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
                   >
-                    ★ {product.rating?.rate ?? 0}
-                  </p>
+                    <img
+                      className="img-fluid"
+                      src={product.image}
+                      alt={product.title}
+                      style={{ maxHeight: "100%" }}
+                    />
+                  </div>
 
-                  <div className="mt-auto">
-                    <div className="lead mb-2">
-                      {formatPrice(product.price)}
-                    </div>
-                    <div className="d-flex justify-content-center gap-2">
-                      <Link
-                        to={`/product/${product.id}`}
-                        className="btn btn-outline-dark btn-sm"
-                      >
-                        Details
-                      </Link>
-                      <button
-                        className="btn btn-dark btn-sm"
-                        type="button"
-                        onClick={() => addProduct(product)}
-                      >
-                        Add to Cart
-                      </button>
+                  <div className="card-body d-flex flex-column">
+                    <h5 className="card-title">
+                      {product.title.length > 40
+                        ? product.title.substring(0, 40) + "..."
+                        : product.title}
+                    </h5>
+                    <p
+                      className="text-muted mb-2"
+                      title={`Rating: ${product.rating?.rate ?? 0}`}
+                    >
+                      ★ {product.rating?.rate ?? 0}
+                    </p>
+
+                    <div className="mt-auto">
+                      <div className="lead mb-2">
+                        {formatPrice(product.price)}
+                      </div>
+
+                      {/* الأزرار: التفاصيل / إضافة للسلة / المفضلة */}
+                      <div className="d-flex justify-content-center gap-2">
+                        <Link
+                          to={`/product/${product.id}`}
+                          className="btn btn-outline-dark btn-sm"
+                        >
+                          Details
+                        </Link>
+
+                        <button
+                          className="btn btn-dark btn-sm"
+                          type="button"
+                          onClick={() => addProduct(product)}
+                        >
+                          Add to Cart
+                        </button>
+
+                        <button
+                          type="button"
+                          className={`btn btn-outline-danger btn-sm ${wished ? "active" : ""}`}
+                          title={wished ? "Remove from Wishlist" : "Add to Wishlist"}
+                          onClick={() => dispatch(toggleWishlist(product))}
+                        >
+                          <i className={`fa ${wished ? "fa-heart" : "fa-heart-o"}`} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

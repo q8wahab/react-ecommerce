@@ -5,6 +5,12 @@ import "../node_modules/bootstrap/dist/css/bootstrap.min.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
 import store from "./store";
+import "./theme.css";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.bundle.min.js"; // لازم للبورجر/collapse
+import Wishlist from "./pages/Wishlist";
+
+
 
 
 import {
@@ -39,6 +45,7 @@ root.render(
           <Route path="/checkout" element={<Checkout />} />
           <Route path="*" element={<PageNotFound />} />
           <Route path="/product/*" element={<PageNotFound />} />
+          <Route path="/wishlist" element={<Wishlist />} />
         </Routes>
       </Provider>
     </ScrollToTop>

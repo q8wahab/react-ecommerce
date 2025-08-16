@@ -1,0 +1,22 @@
+:root{
+  --bg: #ffffff;
+  --fg: #111827;
+  --muted:#6b7280;
+  --card:#ffffff;
+  --border:#e5e7eb;
+  --primary:#111827; /* قريب من btn-dark */
+}
+.theme-dark{
+  --bg:#0b0f17;
+  --fg:#e5e7eb;
+  --muted:#9ca3af;
+  --card:#121826;
+  --border:#1f2937;
+  --primary:#e5e7eb;
+}
+
+html, body { background: var(--bg); color: var(--fg); }
+.card { background: var(--card); border-color: var(--border); }
+.text-muted, .text-secondary { color: var(--muted) !important; }
+.btn-dark, .btn-outline-dark:hover { background: var(--primary); border-color: var(--primary); }
+.offcanvas { transition: none !important; }

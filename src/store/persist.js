@@ -22,3 +22,24 @@ export function saveCartState(cartArray) {
     console.warn("saveCartState error:", e);
   }
 }
+
+const WISHLIST_KEY = "wishlist";
+
+export function loadWishlistState() {
+  try {
+    if (typeof window === "undefined") return [];
+    const raw = localStorage.getItem(WISHLIST_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveWishlistState(arr) {
+  try {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(WISHLIST_KEY, JSON.stringify(arr ?? []));
+  } catch {}
+}

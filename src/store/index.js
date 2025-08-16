@@ -1,10 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import rootReducers from "./reducer";
-import { loadCartState, saveCartState } from "./persist";
+import { loadCartState, saveCartState, loadWishlistState, saveWishlistState } from "./persist";
 
 // نحمّل السلة من localStorage داخل الحالة الأولية
 const preloadedState = {
   handleCart: loadCartState(),
+  wishlist: loadWishlistState(),              // ✅
 };
 
 const store = configureStore({
@@ -12,11 +13,10 @@ const store = configureStore({
   preloadedState,
 });
 
-// كل ما تغيّرت الحالة نحفظ السلة في localStorage
 store.subscribe(() => {
   const state = store.getState();
-  // لو اسم الريديُوسر مختلف عندك غيّر handleCart للاسم الصحيح
   saveCartState(state.handleCart);
+  saveWishlistState(state.wishlist);          // ✅
 });
 
 export default store;

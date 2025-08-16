@@ -1,49 +1,122 @@
-import React from 'react'
-import { NavLink } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import React, { useEffect, useState } from "react";
+import { NavLink } from "react-router-dom";
+import { useSelector } from "react-redux";
+import MiniCartOffcanvas from "./MiniCartOffcanvas";
 
 const Navbar = () => {
-   const cart = useSelector((state) => state.handleCart || []);
-const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+  const cart = useSelector((state) => state.handleCart || []);
+  const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
 
-    return (
-        <nav className="navbar navbar-expand-lg navbar-light bg-light py-3 sticky-top">
-            <div className="container">
-                <NavLink className="navbar-brand fw-bold fs-4 px-2" to="/"> React Ecommerce</NavLink>
-                <button className="navbar-toggler mx-2" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                    <span className="navbar-toggler-icon"></span>
-                </button>
+  // read saved theme only (toggle button is commented out for now)
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    const saved = localStorage.getItem("theme") === "dark";
+    setDark(saved);
+    document.documentElement.classList.toggle("theme-dark", saved);
+  }, []);
 
-                <div className="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul className="navbar-nav m-auto my-2 text-center">
-                        <li className="nav-item">
-                            <NavLink className="nav-link" to="/">Home </NavLink>
-                        </li>
-                        <li className="nav-item">
-                            <NavLink className="nav-link" to="/products">Products</NavLink>
-                        </li>
-                        <li className="nav-item">
-                            <NavLink className="nav-link" to="/about">About</NavLink>
-                        </li>
-                        <li className="nav-item">
-                            <NavLink className="nav-link" to="/contact">Contact</NavLink>
-                        </li>
-                    </ul>
-                    <div className="buttons text-center">
-                        <NavLink to="/login" className="btn btn-outline-dark m-2"><i className="fa fa-sign-in-alt mr-1"></i> Login</NavLink>
-                        <NavLink to="/register" className="btn btn-outline-dark m-2"><i className="fa fa-user-plus mr-1"></i> Register</NavLink>
-                      <NavLink to="/cart" className="btn btn-outline-dark m-2">
-  <i className="fa fa-shopping-cart me-1"></i>
-  Cart <span className="badge bg-dark text-white ms-2">{totalItems}</span>
-</NavLink>
+  const navClass = dark
+    ? "navbar navbar-expand-lg navbar-dark bg-dark py-3 sticky-top"
+    : "navbar navbar-expand-lg navbar-light bg-light py-3 sticky-top";
 
-                    </div>
-                </div>
+  const btnSkin = dark ? "btn-outline-light" : "btn-outline-dark";
+  const badgeSkin = dark ? "bg-light text-dark" : "bg-dark text-white";
 
+  return (
+    <>
+      <nav className={navClass}>
+        <div className="container">
+          {/* left: brand */}
+          <NavLink className="navbar-brand fw-bold fs-4 px-2" to="/">
+            24ozKw
+          </NavLink>
 
+          {/* right: mobile cart (outside collapse) + burger */}
+          <div className="d-flex align-items-center ms-auto">
+            {/* Cart — mobile only */}
+            <button
+              className={`btn ${btnSkin} me-2 d-lg-none`}
+              type="button"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#miniCart"
+              aria-controls="miniCart"
+            >
+              <i className="fa fa-shopping-cart me-1" />
+              <span className="d-none d-sm-inline">Cart</span>
+              <span className={`badge ${badgeSkin} ms-2`}>{totalItems}</span>
+            </button>
+
+            {/* theme toggle (temporarily disabled) */}
+            {/*
+            <button onClick={toggleTheme} className={`btn ${btnSkin} me-2`}>
+              {dark ? "Light" : "Dark"}
+            </button>
+            */}
+
+            {/* burger */}
+            <button
+              className="navbar-toggler"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#navbarSupportedContent"
+              aria-controls="navbarSupportedContent"
+              aria-expanded="false"
+              aria-label="Toggle navigation"
+            >
+              <span className="navbar-toggler-icon" />
+            </button>
+          </div>
+
+          {/* collapse content */}
+          <div className="collapse navbar-collapse" id="navbarSupportedContent">
+            {/* left links */}
+            <ul className="navbar-nav me-auto my-2 text-center">
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/">Home</NavLink>
+              </li>
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/products">Products</NavLink>
+              </li>
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/about">About</NavLink>
+              </li>
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/contact">Contact</NavLink>
+              </li>
+            </ul>
+
+            {/* right inside collapse: auth + desktop cart + wishlist */}
+            <div className="buttons text-center d-flex align-items-center">
+              <NavLink to="/login" className={`btn ${btnSkin} m-2`}>
+                <i className="fa fa-sign-in me-1" /> Login
+              </NavLink>
+              <NavLink to="/register" className={`btn ${btnSkin} m-2`}>
+                <i className="fa fa-user-plus me-1" /> Register
+              </NavLink>
+
+              {/* Cart — desktop only */}
+              <button
+                className={`btn ${btnSkin} m-2 d-none d-lg-inline-flex`}
+                type="button"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#miniCart"
+                aria-controls="miniCart"
+              >
+                <i className="fa fa-shopping-cart me-1" />
+                Cart <span className={`badge ${badgeSkin} ms-2`}>{totalItems}</span>
+              </button>
+
+              <NavLink to="/wishlist" className={`btn ${btnSkin} m-2`}>
+                <i className="fa fa-heart me-1" /> Wishlist
+              </NavLink>
             </div>
-        </nav>
-    )
-}
+          </div>
+        </div>
+      </nav>
 
-export default Navbar
+      <MiniCartOffcanvas />
+    </>
+  );
+};
+
+export default Navbar;

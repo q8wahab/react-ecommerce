@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { addCart } from "../redux/action";
 
@@ -14,165 +14,317 @@ const Products = () => {
   const [filter, setFilter] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const isMounted = useRef(true); // بديل componentMounted
+  // بحث + ترتيب
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("none"); // none | priceAsc | priceDesc | ratingDesc | titleAsc
+
+  // ترقيم الصفحات
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9); // 6 / 9 / 12
+
+  const mounted = useRef(true);
   const dispatch = useDispatch();
 
   const addProduct = (product) => {
     dispatch(addCart(product));
+    toast.success("Added to cart");
   };
 
   useEffect(() => {
-    isMounted.current = true;
-    const controller = new AbortController();
-
     const getProducts = async () => {
       try {
         setLoading(true);
-        const res = await fetch("https://fakestoreapi.com/products/", {
-          signal: controller.signal,
-        });
-        const json = await res.json(); // قراءة وحدة تكفي
-        if (!isMounted.current) return;
-        setData(json);
-        setFilter(json);
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error(err);
+        const res = await fetch("https://fakestoreapi.com/products/");
+        const json = await res.json();
+        if (mounted.current) {
+          setData(json);
+          setFilter(json);
+          setLoading(false);
         }
-      } finally {
-        if (isMounted.current) setLoading(false);
+      } catch (e) {
+        console.error(e);
+        if (mounted.current) setLoading(false);
       }
     };
-
     getProducts();
-
     return () => {
-      isMounted.current = false;
-      controller.abort();
+      mounted.current = false;
     };
   }, []);
 
-  const Loading = () => {
-    return (
-      <>
-        <div className="col-12 py-5 text-center">
-          <Skeleton height={40} width={560} />
-        </div>
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="col-md-4 col-sm-6 col-xs-8 col-12 mb-4">
-            <Skeleton height={592} />
-          </div>
-        ))}
-      </>
-    );
-  };
-
   const filterProduct = (cat) => {
-    const updatedList = data.filter((item) => item.category === cat);
-    setFilter(updatedList);
+    if (!cat) {
+      setFilter(data);
+    } else {
+      const updatedList = data.filter((item) => item.category === cat);
+      setFilter(updatedList);
+    }
+    // رجّع للصفحة الأولى بعد تغيير الفلتر
+    setPage(1);
   };
 
-  const ShowProducts = () => {
-    return (
-      <>
-        <div className="buttons text-center py-5">
+  // نطبّق البحث + الترتيب
+  const visible = useMemo(() => {
+    let list = [...filter];
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q)
+      );
+    }
+    switch (sortBy) {
+      case "priceAsc":
+        list.sort((a, b) => a.price - b.price);
+        break;
+      case "priceDesc":
+        list.sort((a, b) => b.price - a.price);
+        break;
+      case "ratingDesc":
+        list.sort((a, b) => (b.rating?.rate || 0) - (a.rating?.rate || 0));
+        break;
+      case "titleAsc":
+        list.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      default:
+        break;
+    }
+    return list;
+  }, [filter, search, sortBy]);
+
+  // ارجع للصفحة الأولى عند تغيير البحث/الترتيب/حجم الصفحة
+  useEffect(() => {
+    setPage(1);
+  }, [search, sortBy, pageSize]);
+
+  const total = visible.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, total);
+  const pageItems = visible.slice(startIndex, endIndex);
+
+  const LoadingView = () => (
+    <>
+      <div className="col-12 py-5 text-center">
+        <Skeleton height={40} width={560} />
+      </div>
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="col-md-4 col-sm-6 col-12 mb-4">
+          <Skeleton height={592} />
+        </div>
+      ))}
+    </>
+  );
+
+  return (
+    <div className="container my-3 py-3">
+      <div className="row">
+        <div className="col-12">
+          <h2 className="display-5 text-center">Latest Products</h2>
+          <hr />
+        </div>
+      </div>
+
+      {/* أزرار التصنيفات */}
+      {!loading && (
+        <div className="buttons text-center py-4">
           <button
             className="btn btn-outline-dark btn-sm m-2"
-            onClick={() => setFilter(data)}
+            onClick={() => filterProduct(null)}
+            type="button"
           >
             All
           </button>
           <button
             className="btn btn-outline-dark btn-sm m-2"
             onClick={() => filterProduct("men's clothing")}
+            type="button"
           >
             Men's Clothing
           </button>
           <button
             className="btn btn-outline-dark btn-sm m-2"
             onClick={() => filterProduct("women's clothing")}
+            type="button"
           >
             Women's Clothing
           </button>
           <button
             className="btn btn-outline-dark btn-sm m-2"
             onClick={() => filterProduct("jewelery")}
+            type="button"
           >
             Jewelery
           </button>
           <button
             className="btn btn-outline-dark btn-sm m-2"
             onClick={() => filterProduct("electronics")}
+            type="button"
           >
             Electronics
           </button>
         </div>
+      )}
 
-        {filter.map((product) => {
-          return (
+      {/* أدوات البحث + الترتيب + حجم الصفحة + عدّاد */}
+      {!loading && (
+        <div className="d-flex flex-wrap justify-content-center gap-2 pb-3">
+          <input
+            className="form-control"
+            style={{ maxWidth: 280 }}
+            placeholder="Search products..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select
+            className="form-select"
+            style={{ maxWidth: 220 }}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="none">Sort: Featured</option>
+            <option value="priceAsc">Price: Low → High</option>
+            <option value="priceDesc">Price: High → Low</option>
+            <option value="ratingDesc">Rating: High → Low</option>
+            <option value="titleAsc">Title: A → Z</option>
+          </select>
+          <select
+            className="form-select"
+            style={{ maxWidth: 140 }}
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+          >
+            <option value={6}>6 / page</option>
+            <option value={9}>9 / page</option>
+            <option value={12}>12 / page</option>
+          </select>
+          <div className="align-self-center text-muted ms-2">
+            {total > 0
+              ? `Showing ${startIndex + 1}–${endIndex} of ${total}`
+              : "No results"}
+          </div>
+        </div>
+      )}
+
+      <div className="row justify-content-center">
+        {loading ? (
+          <LoadingView />
+        ) : (
+          pageItems.map((product) => (
             <div
+              id={product.id}
               key={product.id}
-              className="col-md-4 col-sm-6 col-xs-8 col-12 mb-4"
+              className="col-md-4 col-sm-6 col-12 mb-4"
             >
-              <div className="card text-center h-100">
-                <img
-                  className="card-img-top p-3"
-                  src={product.image}
-                  alt={product.title}
-                  height={300}
-                />
-                <div className="card-body">
-                  <h5 className="card-title">
-                    {product.title.substring(0, 12)}...
-                  </h5>
-                  <p className="card-text">
-                    {product.description.substring(0, 90)}...
-                  </p>
+              <div className="card text-center h-100 d-flex">
+                <div
+                  className="p-3"
+                  style={{
+                    height: 300,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <img
+                    className="img-fluid"
+                    src={product.image}
+                    alt={product.title}
+                    style={{ maxHeight: "100%" }}
+                  />
                 </div>
-                <ul className="list-group list-group-flush">
-                  <li className="list-group-item lead">
-                    {formatPrice(product.price)}
-                  </li>
-                </ul>
-                <div className="card-body">
-                  <Link
-                    to={`/product/${product.id}`}
-                    className="btn btn-dark m-1"
+
+                <div className="card-body d-flex flex-column">
+                  <h5 className="card-title">
+                    {product.title.length > 40
+                      ? product.title.substring(0, 40) + "..."
+                      : product.title}
+                  </h5>
+                  <p
+                    className="text-muted mb-2"
+                    title={`Rating: ${product.rating?.rate ?? 0}`}
                   >
-                    Buy Now
-                  </Link>
-                  <button
-                    className="btn btn-dark m-1"
-                    onClick={() => {
-                      toast.success("Added to cart");
-                      addProduct(product);
-                    }}
-                  >
-                    Add to Cart
-                  </button>
+                    ★ {product.rating?.rate ?? 0}
+                  </p>
+
+                  <div className="mt-auto">
+                    <div className="lead mb-2">
+                      {formatPrice(product.price)}
+                    </div>
+                    <div className="d-flex justify-content-center gap-2">
+                      <Link
+                        to={`/product/${product.id}`}
+                        className="btn btn-outline-dark btn-sm"
+                      >
+                        Details
+                      </Link>
+                      <button
+                        className="btn btn-dark btn-sm"
+                        type="button"
+                        onClick={() => addProduct(product)}
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          );
-        })}
-      </>
-    );
-  };
-
-  return (
-    <>
-      <div className="container my-3 py-3">
-        <div className="row">
-          <div className="col-12">
-            <h2 className="display-5 text-center">Latest Products</h2>
-            <hr />
-          </div>
-        </div>
-        <div className="row justify-content-center">
-          {loading ? <Loading /> : <ShowProducts />}
-        </div>
+          ))
+        )}
       </div>
-    </>
+
+      {/* أزرار الترقيم */}
+      {!loading && totalPages > 1 && (
+        <nav aria-label="Products pages" className="mt-2">
+          <ul className="pagination justify-content-center">
+            <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+              <button
+                type="button"
+                className="page-link"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                « Prev
+              </button>
+            </li>
+
+            {Array.from({ length: totalPages }).map((_, i) => {
+              const n = i + 1;
+              return (
+                <li
+                  key={n}
+                  className={`page-item ${n === currentPage ? "active" : ""}`}
+                >
+                  <button
+                    type="button"
+                    className="page-link"
+                    onClick={() => setPage(n)}
+                  >
+                    {n}
+                  </button>
+                </li>
+              );
+            })}
+
+            <li
+              className={`page-item ${
+                currentPage === totalPages ? "disabled" : ""
+              }`}
+            >
+              <button
+                type="button"
+                className="page-link"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next »
+              </button>
+            </li>
+          </ul>
+        </nav>
+      )}
+    </div>
   );
 };
 

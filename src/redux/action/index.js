@@ -1,15 +1,4 @@
-// For Add Item to Cart
-export const addCart = (product) =>{
-    return {
-        type:"ADDITEM",
-        payload:product
-    }
-}
+// re-export actions from the RTK slice so old imports keep working
+// Re-export RTK slice actions so old imports keep working
+export { addCart, delCart, setQty, clearCart } from "../../store/cart/slice";
 
-// For Delete Item to Cart
-export const delCart = (product) =>{
-    return {
-        type:"DELITEM",
-        payload:product
-    }
-}

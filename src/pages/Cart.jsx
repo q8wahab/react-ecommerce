@@ -3,6 +3,7 @@ import { Footer, Navbar } from "../components";
 import { useSelector, useDispatch } from "react-redux";
 import { addCart, delCart } from "../redux/action";
 import { Link } from "react-router-dom";
+import { formatPrice } from "../utils/format";
 
 const Cart = () => {
   const state = useSelector((state) => state.handleCart);
@@ -31,17 +32,11 @@ const Cart = () => {
   };
 
   const ShowCart = () => {
-    let subtotal = 0;
-    let shipping = 30.0;
-    let totalItems = 0;
-    state.map((item) => {
-      return (subtotal += item.price * item.qty);
-    });
+  const shipping = 2.0;
+  const subtotal = state.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const totalItems = state.reduce((sum, item) => sum + item.qty, 0);
+  return (
 
-    state.map((item) => {
-      return (totalItems += item.qty);
-    });
-    return (
       <>
         <section className="h-100 gradient-custom">
           <div className="container py-5">
@@ -106,10 +101,10 @@ const Cart = () => {
                               </div>
 
                               <p className="text-start text-md-center">
-                                <strong>
-                                  <span className="text-muted">{item.qty}</span>{" "}
-                                  x ${item.price}
-                                </strong>
+                               <strong>
+  <span className="text-muted">{item.qty}</span> x {formatPrice(item.price)}
+</strong>
+
                               </p>
                             </div>
                           </div>
@@ -129,18 +124,20 @@ const Cart = () => {
                   <div className="card-body">
                     <ul className="list-group list-group-flush">
                       <li className="list-group-item d-flex justify-content-between align-items-center border-0 px-0 pb-0">
-                        Products ({totalItems})<span>${Math.round(subtotal)}</span>
+                       Products ({totalItems})<span>{formatPrice(subtotal)}</span>
+
                       </li>
                       <li className="list-group-item d-flex justify-content-between align-items-center px-0">
-                        Shipping
-                        <span>${shipping}</span>
+                        Shipping <span>{formatPrice(shipping)}</span>
+
                       </li>
                       <li className="list-group-item d-flex justify-content-between align-items-center border-0 px-0 mb-3">
                         <div>
                           <strong>Total amount</strong>
                         </div>
                         <span>
-                          <strong>${Math.round(subtotal + shipping)}</strong>
+                         <strong>{formatPrice(subtotal + shipping)}</strong>
+
                         </span>
                       </li>
                     </ul>

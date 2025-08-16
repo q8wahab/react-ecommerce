@@ -6,6 +6,8 @@ import { useDispatch } from "react-redux";
 import { addCart } from "../redux/action";
 
 import { Footer, Navbar } from "../components";
+import { formatPrice } from "../utils/format";
+
 
 const Product = () => {
   const { id } = useParams();
@@ -82,7 +84,8 @@ const Product = () => {
                 {product.rating && product.rating.rate}{" "}
                 <i className="fa fa-star"></i>
               </p>
-              <h3 className="display-6  my-4">${product.price}</h3>
+              <h3 className="display-6 my-4">{formatPrice(product.price)}</h3>
+
               <p className="lead">{product.description}</p>
               <button
                 className="btn btn-outline-dark"
@@ -142,6 +145,8 @@ const Product = () => {
                     <h5 className="card-title">
                       {item.title.substring(0, 15)}...
                     </h5>
+                    <p className="lead mb-0">{formatPrice(item.price)}</p>
+
                   </div>
                   {/* <ul className="list-group list-group-flush">
                     <li className="list-group-item lead">${product.price}</li>

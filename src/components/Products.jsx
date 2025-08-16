@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { addCart } from "../redux/action";
 import { toggleWishlist } from "../store/wishlist/slice";
 
+
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
@@ -279,13 +280,23 @@ const Products = () => {
                         </button>
 
                         <button
-                          type="button"
-                          className={`btn btn-outline-danger btn-sm ${wished ? "active" : ""}`}
-                          title={wished ? "Remove from Wishlist" : "Add to Wishlist"}
-                          onClick={() => dispatch(toggleWishlist(product))}
-                        >
-                          <i className={`fa ${wished ? "fa-heart" : "fa-heart-o"}`} />
-                        </button>
+  type="button"
+  className={`btn ${wished ? "btn-danger" : "btn-outline-danger"} btn-sm`}
+  title={wished ? "Remove from Wishlist" : "Add to Wishlist"}
+  aria-pressed={wished}
+  aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+  onClick={(e) => {
+    e.stopPropagation();
+    dispatch(toggleWishlist(product));
+    toast.success(wished ? "Removed from wishlist" : "Added to wishlist");
+  }}
+>
+  <i className={`fa ${wished ? "fa-heart" : "fa-heart-o"} me-1`} />
+  <span className="d-none d-sm-inline">
+    {wished ? "Wishlisted" : "Wishlist"}
+  </span>
+</button>
+
                       </div>
                     </div>
                   </div>

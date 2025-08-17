@@ -1,67 +1,51 @@
-# E-Commerce Website
+# E-commerce Frontend
 
-A Ecommerce Website made with React.js Framework.
-
-
-## Demo
-
-https://reactjs-ecommerce-app.vercel.app/
+A modern React-based e-commerce frontend application.
 
 ## Features
+- User authentication (login/register)
+- Product browsing and filtering
+- Shopping cart functionality
+- Wishlist management
+- Responsive design
+- Search functionality
+- Category filtering
 
-- Easy to integrate with Backend
-- Fully Responsive
+## Setup Instructions
 
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## Screenshots
+3. Create a `.env` file in the root directory:
+   ```
+   REACT_APP_API_URL=your_backend_api_url/api
+   ```
 
-![App Screenshot](https://i.ibb.co/fQ293tm/image.png)
+4. Start the development server:
+   ```bash
+   npm start
+   ```
 
+## Environment Variables
+- `REACT_APP_API_URL`: Backend API URL
 
+## Technologies Used
+- React.js
+- React Router
+- Axios for API calls
+- Bootstrap for styling
+- React Icons
 
-## Run Locally
+## API Integration
+This frontend is designed to work with the corresponding e-commerce backend API.
 
-Clone the project
-
+## Deployment
+For production deployment, build the project:
 ```bash
-  git clone https://github.com/ssahibsingh/React_E-Commerce
+npm run build
 ```
 
-Go to the project directory
-
-```bash
-  cd React_E-Commerce
-```
-
-Install dependencies
-
-```bash
-  npm install
-```
-
-Start the server
-
-```bash
-  npm start
-```
-
-
-
-## Tech Stack
-
-* [React](https://reactjs.org/)
-* [Redux](https://redux.js.org/)
-* [Bootstrap](https://getbootstrap.com/)
-* [Fake Store API](https://fakestoreapi.com/)
-
-## Contributing
-
-Contributions are always welcome!
-Just raise an issue, we will discuss it.
-
-
-## Feedback
-
-If you have any feedback, please reach out to me [here](https://ssahibsingh.github.io/#contact)
-
-
+Then deploy the `build` folder to your hosting service.

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { addCart } from "../redux/action";
 import { toggleWishlist } from "../store/wishlist/slice";
-
+import ApiService from "../services/api";
 
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -13,16 +13,19 @@ import { formatPrice } from "../utils/format";
 
 const Products = () => {
   const [data, setData] = useState([]);
-  const [filter, setFilter] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // بحث + ترتيب
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("none"); // none | priceAsc | priceDesc | ratingDesc | titleAsc
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   // ترقيم الصفحات
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(9); // 6 / 9 / 12
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const mounted = useRef(true);
   const dispatch = useDispatch();
@@ -32,84 +35,91 @@ const Products = () => {
   const inWishlist = (id) => wishlist.some((w) => w.id === id);
 
   const addProduct = (product) => {
-    dispatch(addCart(product));
+    // Convert backend product format to frontend format
+    const cartProduct = {
+      id: product._id || product.id,
+      title: product.title,
+      price: product.price, // Already converted from fils
+      image: product.image,
+      category: product.category,
+      rating: product.rating
+    };
+    dispatch(addCart(cartProduct));
     toast.success("Added to cart");
   };
 
+  // Load categories
+  useEffect(() => {
+    const getCategories = async () => {
+      try {
+        const categoriesData = await ApiService.getCategories();
+        if (mounted.current) {
+          setCategories(categoriesData);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+    getCategories();
+  }, []);
+
+  // Load products
   useEffect(() => {
     const getProducts = async () => {
       try {
         setLoading(true);
-        const res = await fetch("https://fakestoreapi.com/products/");
-        const json = await res.json();
+        const params = {
+          page,
+          limit: pageSize,
+        };
+        
+        if (search) params.q = search;
+        if (selectedCategory) params.category = selectedCategory;
+        if (sortBy !== 'none') params.sort = sortBy;
+
+        const response = await ApiService.getProducts(params);
+        
         if (mounted.current) {
-          setData(json);
-          setFilter(json);
+          // Transform backend data to frontend format
+          const transformedProducts = response.items.map(product => ({
+            id: product._id,
+            title: product.title,
+            price: product.priceInFils / 1000, // Convert fils to KWD
+            image: product.image || product.images?.find(img => img.isPrimary)?.url || product.images?.[0]?.url,
+            category: product.category?.name,
+            rating: product.rating,
+            description: product.description || ''
+          }));
+          
+          setData(transformedProducts);
+          setTotalPages(response.totalPages);
+          setTotal(response.total);
           setLoading(false);
         }
-      } catch (e) {
-        console.error(e);
-        if (mounted.current) setLoading(false);
+      } catch (error) {
+        console.error('Error loading products:', error);
+        if (mounted.current) {
+          setLoading(false);
+          toast.error('Failed to load products');
+        }
       }
     };
+
     getProducts();
     return () => {
       mounted.current = false;
     };
-  }, []);
+  }, [page, pageSize, search, selectedCategory, sortBy]);
 
-  const filterProduct = (cat) => {
-    if (!cat) {
-      setFilter(data);
-    } else {
-      const updatedList = data.filter((item) => item.category === cat);
-      setFilter(updatedList);
-    }
-    // رجّع للصفحة الأولى بعد تغيير الفلتر
+  const filterProduct = (categorySlug) => {
+    setSelectedCategory(categorySlug);
     setPage(1);
   };
 
-  // نطبّق البحث + الترتيب
-  const visible = useMemo(() => {
-    let list = [...filter];
-    const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q)
-      );
-    }
-    switch (sortBy) {
-      case "priceAsc":
-        list.sort((a, b) => a.price - b.price);
-        break;
-      case "priceDesc":
-        list.sort((a, b) => b.price - a.price);
-        break;
-      case "ratingDesc":
-        list.sort((a, b) => (b.rating?.rate || 0) - (a.rating?.rate || 0));
-        break;
-      case "titleAsc":
-        list.sort((a, b) => a.title.localeCompare(b.title));
-        break;
-      default:
-        break;
-    }
-    return list;
-  }, [filter, search, sortBy]);
-
-  // ارجع للصفحة الأولى عند تغيير البحث/الترتيب/حجم الصفحة
+  // Reset page when search/sort changes
   useEffect(() => {
     setPage(1);
   }, [search, sortBy, pageSize]);
-
-  const total = visible.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = Math.min(startIndex + pageSize, total);
-  const pageItems = visible.slice(startIndex, endIndex);
 
   const LoadingView = () => (
     <>
@@ -137,40 +147,22 @@ const Products = () => {
       {!loading && (
         <div className="buttons text-center py-4">
           <button
-            className="btn btn-outline-dark btn-sm m-2"
-            onClick={() => filterProduct(null)}
+            className={`btn btn-sm m-2 ${!selectedCategory ? 'btn-dark' : 'btn-outline-dark'}`}
+            onClick={() => filterProduct("")}
             type="button"
           >
             All
           </button>
-          <button
-            className="btn btn-outline-dark btn-sm m-2"
-            onClick={() => filterProduct("men's clothing")}
-            type="button"
-          >
-            Men's Clothing
-          </button>
-          <button
-            className="btn btn-outline-dark btn-sm m-2"
-            onClick={() => filterProduct("women's clothing")}
-            type="button"
-          >
-            Women's Clothing
-          </button>
-          <button
-            className="btn btn-outline-dark btn-sm m-2"
-            onClick={() => filterProduct("jewelery")}
-            type="button"
-          >
-            Jewelery
-          </button>
-          <button
-            className="btn btn-outline-dark btn-sm m-2"
-            onClick={() => filterProduct("electronics")}
-            type="button"
-          >
-            Electronics
-          </button>
+          {categories.map((category) => (
+            <button
+              key={category._id}
+              className={`btn btn-sm m-2 ${selectedCategory === category.slug ? 'btn-dark' : 'btn-outline-dark'}`}
+              onClick={() => filterProduct(category.slug)}
+              type="button"
+            >
+              {category.name}
+            </button>
+          ))}
         </div>
       )}
 
@@ -208,7 +200,7 @@ const Products = () => {
           </select>
           <div className="align-self-center text-muted ms-2">
             {total > 0
-              ? `Showing ${startIndex + 1}–${endIndex} of ${total}`
+              ? `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}`
               : "No results"}
           </div>
         </div>
@@ -217,8 +209,13 @@ const Products = () => {
       <div className="row justify-content-center">
         {loading ? (
           <LoadingView />
+        ) : data.length === 0 ? (
+          <div className="col-12 text-center py-5">
+            <h4>No products found</h4>
+            <p className="text-muted">Try adjusting your search or filters</p>
+          </div>
         ) : (
-          pageItems.map((product) => {
+          data.map((product) => {
             const wished = inWishlist(product.id);
             return (
               <div
@@ -238,9 +235,12 @@ const Products = () => {
                   >
                     <img
                       className="img-fluid"
-                      src={product.image}
+                      src={product.image || '/placeholder-image.jpg'}
                       alt={product.title}
                       style={{ maxHeight: "100%" }}
+                      onError={(e) => {
+                        e.target.src = '/placeholder-image.jpg';
+                      }}
                     />
                   </div>
 
@@ -280,23 +280,22 @@ const Products = () => {
                         </button>
 
                         <button
-  type="button"
-  className={`btn ${wished ? "btn-danger" : "btn-outline-danger"} btn-sm`}
-  title={wished ? "Remove from Wishlist" : "Add to Wishlist"}
-  aria-pressed={wished}
-  aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
-  onClick={(e) => {
-    e.stopPropagation();
-    dispatch(toggleWishlist(product));
-    toast.success(wished ? "Removed from wishlist" : "Added to wishlist");
-  }}
->
-  <i className={`fa ${wished ? "fa-heart" : "fa-heart-o"} me-1`} />
-  <span className="d-none d-sm-inline">
-    {wished ? "Wishlisted" : "Wishlist"}
-  </span>
-</button>
-
+                          type="button"
+                          className={`btn ${wished ? "btn-danger" : "btn-outline-danger"} btn-sm`}
+                          title={wished ? "Remove from Wishlist" : "Add to Wishlist"}
+                          aria-pressed={wished}
+                          aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dispatch(toggleWishlist(product));
+                            toast.success(wished ? "Removed from wishlist" : "Added to wishlist");
+                          }}
+                        >
+                          <i className={`fa ${wished ? "fa-heart" : "fa-heart-o"} me-1`} />
+                          <span className="d-none d-sm-inline">
+                            {wished ? "Wishlisted" : "Wishlist"}
+                          </span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -311,7 +310,7 @@ const Products = () => {
       {!loading && totalPages > 1 && (
         <nav aria-label="Products pages" className="mt-2">
           <ul className="pagination justify-content-center">
-            <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+            <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
               <button
                 type="button"
                 className="page-link"
@@ -321,28 +320,36 @@ const Products = () => {
               </button>
             </li>
 
-            {Array.from({ length: totalPages }).map((_, i) => {
-              const n = i + 1;
+            {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (page <= 3) {
+                pageNum = i + 1;
+              } else if (page >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = page - 2 + i;
+              }
+
               return (
                 <li
-                  key={n}
-                  className={`page-item ${n === currentPage ? "active" : ""}`}
+                  key={pageNum}
+                  className={`page-item ${pageNum === page ? "active" : ""}`}
                 >
                   <button
                     type="button"
                     className="page-link"
-                    onClick={() => setPage(n)}
+                    onClick={() => setPage(pageNum)}
                   >
-                    {n}
+                    {pageNum}
                   </button>
                 </li>
               );
             })}
 
             <li
-              className={`page-item ${
-                currentPage === totalPages ? "disabled" : ""
-              }`}
+              className={`page-item ${page === totalPages ? "disabled" : ""}`}
             >
               <button
                 type="button"
@@ -360,3 +367,4 @@ const Products = () => {
 };
 
 export default Products;
+

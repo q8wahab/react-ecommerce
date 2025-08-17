@@ -28,20 +28,34 @@ const Product = () => {
 
   useEffect(() => {
     const getProduct = async () => {
-      setLoading(true);
-      setLoading2(true);
-      const res = await fetch(`https://fakestoreapi.com/products/${id}`);
-      const data = await res.json();
-      setProduct(data);
-      setLoading(false);
+  setLoading(true);
+  setLoading2(true);
+  
+  try {
+    // Fetch single product from YOUR backend
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/products/${id}`);
+    if (!res.ok) {
+      throw new Error('Product not found');
+    }
+    const data = await res.json();
+    setProduct(data);
+    setLoading(false);
 
-      const res2 = await fetch(
-        `https://fakestoreapi.com/products/category/${data.category}`
-      );
+    // Fetch similar products by category from YOUR backend
+    const res2 = await fetch(
+      `${process.env.REACT_APP_API_URL}/products?category=${data.category}&limit=4`
+    );
+    if (res2.ok) {
       const data2 = await res2.json();
-      setSimilarProducts(data2);
-      setLoading2(false);
-    };
+      setSimilarProducts(data2.products || data2); // Handle your API response structure
+    }
+    setLoading2(false);
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    setLoading(false);
+    setLoading2(false);
+  }
+};
     getProduct();
   }, [id]);
 

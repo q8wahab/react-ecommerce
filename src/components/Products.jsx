@@ -265,7 +265,7 @@ const Products = () => {
                       {/* الأزرار: التفاصيل / إضافة للسلة / المفضلة */}
                       <div className="d-flex justify-content-center gap-2">
                         <Link
-                          to={`/product/${product.id}`}
+                          to={`/product/${product._id}`}
                           className="btn btn-outline-dark btn-sm"
                         >
                           Details

@@ -7,6 +7,8 @@ import { addCart } from "../redux/action";
 import { toggleWishlist } from "../store/wishlist/slice";
 import { Footer, Navbar } from "../components";
 import { formatPrice } from "../utils/format";
+import ApiService from "../services/api";
+import toast from "react-hot-toast";
 
 const Product = () => {
   const { id } = useParams();
@@ -28,34 +30,56 @@ const Product = () => {
 
   useEffect(() => {
     const getProduct = async () => {
-  setLoading(true);
-  setLoading2(true);
-  
-  try {
-    // Fetch single product from YOUR backend
-    const res = await fetch(`${process.env.REACT_APP_API_URL}/products/${id}`);
-    if (!res.ok) {
-      throw new Error('Product not found');
-    }
-    const data = await res.json();
-    setProduct(data);
-    setLoading(false);
+      setLoading(true);
+      setLoading2(true);
+      
+      try {
+        // Fetch single product using ApiService
+        const data = await ApiService.getProduct(id);
+        
+        // Transform backend data to frontend format
+        const transformedProduct = {
+          id: data._id,
+          title: data.title,
+          price: data.priceInFils / 1000, // Convert fils to KWD
+          image: data.images?.find(img => img.isPrimary)?.url || data.images?.[0]?.url || '/placeholder-image.jpg',
+          category: data.category?.name || data.category,
+          rating: data.rating,
+          description: data.description || '',
+          stock: data.stock || 0
+        };
+        
+        setProduct(transformedProduct);
+        setLoading(false);
 
-    // Fetch similar products by category from YOUR backend
-    const res2 = await fetch(
-      `${process.env.REACT_APP_API_URL}/products?category=${data.category}&limit=4`
-    );
-    if (res2.ok) {
-      const data2 = await res2.json();
-      setSimilarProducts(data2.products || data2); // Handle your API response structure
-    }
-    setLoading2(false);
-  } catch (error) {
-    console.error('Error fetching product:', error);
-    setLoading(false);
-    setLoading2(false);
-  }
-};
+        // Fetch similar products by category
+        if (data.category?.slug) {
+          const response = await ApiService.getProducts({ 
+            category: data.category.slug, 
+            limit: 4 
+          });
+          
+          // Transform similar products
+          const transformedSimilarProducts = (response.items || response).map(product => ({
+            id: product._id,
+            title: product.title,
+            price: product.priceInFils / 1000,
+            image: product.image || product.images?.find(img => img.isPrimary)?.url || product.images?.[0]?.url || '/placeholder-image.jpg',
+            category: product.category?.name,
+            rating: product.rating
+          }));
+          
+          setSimilarProducts(transformedSimilarProducts);
+        }
+        setLoading2(false);
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        toast.error('Failed to load product details');
+        setLoading(false);
+        setLoading2(false);
+      }
+    };
+    
     getProduct();
   }, [id]);
 
@@ -88,6 +112,9 @@ const Product = () => {
             alt={product.title}
             width="400"
             height="400"
+            onError={(e) => {
+              e.target.src = '/placeholder-image.jpg';
+            }}
           />
         </div>
         <div className="col-md-6 py-5">
@@ -98,12 +125,18 @@ const Product = () => {
           </p>
           <h3 className="display-6 my-4">{formatPrice(product.price)}</h3>
           <p className="lead">{product.description}</p>
+          {product.stock > 0 ? (
+            <p className="text-success">In Stock ({product.stock} available)</p>
+          ) : (
+            <p className="text-danger">Out of Stock</p>
+          )}
 
           <div className="d-flex align-items-center flex-wrap gap-2">
             <button
               className="btn btn-outline-dark"
               onClick={() => addProduct(product)}
               type="button"
+              disabled={product.stock === 0}
             >
               Add to Cart
             </button>

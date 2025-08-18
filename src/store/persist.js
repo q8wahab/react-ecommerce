@@ -43,3 +43,24 @@ export function saveWishlistState(arr) {
     localStorage.setItem(WISHLIST_KEY, JSON.stringify(arr ?? []));
   } catch {}
 }
+
+const AUTH_KEY = "auth";
+
+export function loadAuthState() {
+  try {
+    if (typeof window === "undefined") return { user: null, isAuthenticated: false, isLoading: false, error: null };
+    const raw = localStorage.getItem(AUTH_KEY);
+    if (!raw) return { user: null, isAuthenticated: false, isLoading: false, error: null };
+    const parsed = JSON.parse(raw);
+    return parsed || { user: null, isAuthenticated: false, isLoading: false, error: null };
+  } catch {
+    return { user: null, isAuthenticated: false, isLoading: false, error: null };
+  }
+}
+
+export function saveAuthState(authState) {
+  try {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(AUTH_KEY, JSON.stringify(authState ?? { user: null, isAuthenticated: false, isLoading: false, error: null }));
+  } catch {}
+}

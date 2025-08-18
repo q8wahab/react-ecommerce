@@ -1,26 +1,39 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { Footer, Navbar } from "../components";
+import { loginStart, loginSuccess, loginFailure } from "../store/auth/slice";
 import ApiService from "../services/api";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { isLoading, error } = useSelector(state => state.auth);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    dispatch(loginStart());
+    
     try {
       const response = await ApiService.login({ email, password });
       console.log("Login successful:", response);
-      // Assuming successful login stores user info/token in local storage or context
-      // For now, just navigate to home
-      navigate("/"); 
+      
+      dispatch(loginSuccess(response.user));
+      toast.success("Login successful!");
+      
+      // Redirect based on user role
+      if (response.user.role === 'admin') {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       console.error("Login failed:", err);
-      setError(err.message || "Login failed. Please check your credentials.");
+      dispatch(loginFailure(err.message || "Login failed. Please check your credentials."));
+      toast.error(err.message || "Login failed. Please check your credentials.");
     }
   };
 
@@ -62,8 +75,19 @@ const Login = () => {
               </div>
               {error && <div className="alert alert-danger" role="alert">{error}</div>}
               <div className="text-center">
-                <button className="my-2 mx-auto btn btn-dark" type="submit">
-                  Login
+                <button 
+                  className="my-2 mx-auto btn btn-dark" 
+                  type="submit"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                      Logging in...
+                    </>
+                  ) : (
+                    "Login"
+                  )}
                 </button>
               </div>
             </form>

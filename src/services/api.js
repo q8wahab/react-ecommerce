@@ -24,9 +24,14 @@ class ApiService {
       const response = await fetch(url, config);
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'API request failed');
-      }
+     if (!response.ok) {
+  // Show detailed validation errors if available
+  if (data.details && Array.isArray(data.details)) {
+    const errorMessages = data.details.map(detail => detail.msg).join(', ');
+    throw new Error(errorMessages);
+  }
+  throw new Error(data.error || 'API request failed');
+}
 
       return data;
     } catch (error) {

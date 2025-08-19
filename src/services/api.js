@@ -11,56 +11,54 @@ function buildUrl(path, params) {
   return url.toString();
 }
 
-async function httpRequest(path, { method = 'GET', body, headers, params } = {}) {
+async function httpRequest(path, { method = 'GET', body, headers = {}, params } = {}) {
   const token = localStorage.getItem('accessToken');
-  const res = await fetch(buildUrl(path, params), {
-    method,
-    credentials: 'include', // لو عندك كوكي refresh
+  const m = (method || 'GET').toUpperCase();
+  const isGet = m === 'GET';
+
+  // 👇 نضيف مُعرِّف وقت لمنع 304 من الكاش + نستخدم cache: 'no-store'
+  const url = buildUrl(path, { ...(params || {}), _ts: Date.now() });
+
+  const res = await fetch(url, {
+    method: m,
+    credentials: 'include',
+    cache: 'no-store',
     headers: {
-      'Content-Type': 'application/json',
+      ...(isGet ? {} : { 'Content-Type': 'application/json' }), // لا ترسل Content-Type مع GET
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(headers || {})
+      ...headers
     },
-    body: body ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined
+    body: !isGet && body ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined
   });
 
   const contentType = res.headers.get('content-type') || '';
-  const data = contentType.includes('application/json') ? await res.json() : await res.text();
+  let data = null;
+  if (contentType.includes('application/json')) {
+    try { data = await res.json(); } catch {}
+  } else if (contentType.includes('text/')) {
+    try { data = await res.text(); } catch {}
+  }
 
   if (!res.ok) {
-    const message = (data && data.error) || (data && data.message) || res.statusText;
+    // 304 وغيره → نطلع برسالة مفهومة
+    const message = (data && data.error) || (data && data.message) || res.statusText || 'Request failed';
     throw new Error(message);
   }
   return data;
 }
 
 const ApiService = {
-  // يحافظ على نفس الواجهة المستعملة في مشروعك
-  async request(url, options) {
-    return httpRequest(url, options);
-  },
-
-  // auth
-  async logout() {
-    await httpRequest('/auth/logout', { method: 'POST' });
-    localStorage.removeItem('accessToken');
-    return { success: true };
-  },
-
-  // products
-  async getProducts(params) {
-    return httpRequest('/products', { params });
-  },
-  async getProduct(id) {
-    return httpRequest(`/products/${id}`);
-  },
-
-  // categories
-  async getCategories() {
-    return httpRequest('/categories');
-  },
-
-  // (اختياري) ممكن تضيف هنا رفع/حذف الصور إن احتجته لاحقًا
+  request: httpRequest,
+  async logout() { await httpRequest('/auth/logout', { method: 'POST' }); localStorage.removeItem('accessToken'); return { success: true }; },
+async getProducts(params) {
+  const res = await httpRequest('/products', { params });
+     // لو السيرفر رجّع مصفوفة مباشرة، غلفها لشكل موحد
+  if (Array.isArray(res)) {
+    return { items: res, total: res.length, totalPages: 1, page: 1 };
+  }
+  return res; // وإلا ارجع كما هي (items/total/...)
+},
+  async getProduct(id) { return httpRequest(`/products/${id}`); },
+  async getCategories() { return httpRequest('/categories'); },
 };
-
 export default ApiService;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { addCart } from "../redux/action";
 import { toggleWishlist } from "../store/wishlist/slice";
@@ -18,6 +18,7 @@ const Products = () => {
 
   // بحث + ترتيب
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState(""); // ✅ للـ debounce
   const [sortBy, setSortBy] = useState("none"); // none | priceAsc | priceDesc | ratingDesc | titleAsc
   const [selectedCategory, setSelectedCategory] = useState("");
 
@@ -27,7 +28,6 @@ const Products = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
-  const mounted = useRef(true);
   const dispatch = useDispatch();
 
   // حالة الـ Wishlist
@@ -35,91 +35,99 @@ const Products = () => {
   const inWishlist = (id) => wishlist.some((w) => w.id === id);
 
   const addProduct = (product) => {
-    // Convert backend product format to frontend format
     const cartProduct = {
       id: product._id || product.id,
       title: product.title,
       price: product.price, // Already converted from fils
       image: product.image,
       category: product.category,
-      rating: product.rating
+      rating: product.rating,
     };
     dispatch(addCart(cartProduct));
     toast.success("Added to cart");
   };
 
-  // Load categories
+  // ✅ Debounce للبحث: حدّث debouncedSearch بعد 300ms من توقف الكتابة
   useEffect(() => {
-    const getCategories = async () => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Load categories (مرة واحدة)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
       try {
         const categoriesData = await ApiService.getCategories();
-        if (mounted.current) {
-          setCategories(categoriesData);
-        }
+        if (!cancelled) setCategories(categoriesData);
       } catch (error) {
-        console.error('Error loading categories:', error);
+        console.error("Error loading categories:", error);
       }
+    })();
+    return () => {
+      cancelled = true;
     };
-    getCategories();
   }, []);
 
-  // Load products
+  // Load products (عند تغيّر الفلاتر/الترقيم)
   useEffect(() => {
-    const getProducts = async () => {
+    let cancelled = false;
+    (async () => {
       try {
         setLoading(true);
-        const params = {
-          page,
-          limit: pageSize,
-        };
-        
-        if (search) params.q = search;
-        if (selectedCategory) params.category = selectedCategory;
-        if (sortBy !== 'none') params.sort = sortBy;
+        const params = { page, limit: pageSize };
+        if (debouncedSearch) params.q = debouncedSearch; // ✅ استخدم المؤجل
+        if (selectedCategory) params.category = selectedCategory; // slug أو _id — الباك يدعم الاثنين
+        if (sortBy !== "none") params.sort = sortBy;
 
         const response = await ApiService.getProducts(params);
-        
-        if (mounted.current) {
+        const items = Array.isArray(response) ? response : response.items || [];
+
+        if (!cancelled) {
           // Transform backend data to frontend format
-          const transformedProducts = response.items.map(product => ({
+          const transformedProducts = items.map((product) => ({
             id: product._id,
             title: product.title,
             price: product.priceInFils / 1000, // Convert fils to KWD
-            image: product.image || product.images?.find(img => img.isPrimary)?.url || product.images?.[0]?.url,
+            image:
+              product.image ||
+              product.images?.find((img) => img.isPrimary)?.url ||
+              product.images?.[0]?.url,
             category: product.category?.name,
             rating: product.rating,
-            description: product.description || ''
+            description: product.description || "",
           }));
-          
+
           setData(transformedProducts);
-          setTotalPages(response.totalPages);
-          setTotal(response.total);
-          setLoading(false);
+          setTotalPages(response.totalPages ?? 1);
+          setTotal(response.total ?? transformedProducts.length);
         }
       } catch (error) {
-        console.error('Error loading products:', error);
-        if (mounted.current) {
-          setLoading(false);
-          toast.error('Failed to load products');
+        console.error("Error loading products:", error);
+        if (!cancelled) {
+          setData([]);
+          setTotal(0);
+          setTotalPages(1);
+          toast.error("Failed to load products");
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    };
-
-    getProducts();
+    })();
     return () => {
-      mounted.current = false;
+      cancelled = true;
     };
-  }, [page, pageSize, search, selectedCategory, sortBy]);
+  }, [page, pageSize, debouncedSearch, selectedCategory, sortBy]); // ✅ يعتمد على debouncedSearch
 
-  const filterProduct = (categorySlug) => {
-    setSelectedCategory(categorySlug);
+  const filterProduct = (categorySlugOrId) => {
+    setSelectedCategory(categorySlugOrId);
     setPage(1);
   };
 
-  // Reset page when search/sort changes
+  // Reset page when search/sort/pageSize changes (استخدم المؤجل)
   useEffect(() => {
     setPage(1);
-  }, [search, sortBy, pageSize]);
+  }, [debouncedSearch, sortBy, pageSize]);
 
   const LoadingView = () => (
     <>
@@ -143,68 +151,73 @@ const Products = () => {
         </div>
       </div>
 
-      {/* أزرار التصنيفات */}
-      {!loading && (
-        <div className="buttons text-center py-4">
+      {/* أزرار التصنيفات — نخليها دايمًا ظاهرة، ونعطّل الأزرار أثناء التحميل */}
+      <div className="buttons text-center py-4">
+        <button
+          className={`btn btn-sm m-2 ${!selectedCategory ? "btn-dark" : "btn-outline-dark"}`}
+          onClick={() => filterProduct("")}
+          type="button"
+          disabled={loading}
+        >
+          All
+        </button>
+        {categories.map((category) => (
           <button
-            className={`btn btn-sm m-2 ${!selectedCategory ? 'btn-dark' : 'btn-outline-dark'}`}
-            onClick={() => filterProduct("")}
+            key={category._id}
+            className={`btn btn-sm m-2 ${
+              selectedCategory === category.slug ? "btn-dark" : "btn-outline-dark"
+            }`}
+            onClick={() => filterProduct(category.slug)} // slug مدعوم في الباك
             type="button"
+            disabled={loading}
           >
-            All
+            {category.name}
           </button>
-          {categories.map((category) => (
-            <button
-              key={category._id}
-              className={`btn btn-sm m-2 ${selectedCategory === category.slug ? 'btn-dark' : 'btn-outline-dark'}`}
-              onClick={() => filterProduct(category.slug)}
-              type="button"
-            >
-              {category.name}
-            </button>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
 
-      {/* أدوات البحث + الترتيب + حجم الصفحة + عدّاد */}
-      {!loading && (
-        <div className="d-flex flex-wrap justify-content-center gap-2 pb-3">
-          <input
-            className="form-control"
-            style={{ maxWidth: 280 }}
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <select
-            className="form-select"
-            style={{ maxWidth: 220 }}
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="none">Sort: Featured</option>
-            <option value="priceAsc">Price: Low → High</option>
-            <option value="priceDesc">Price: High → Low</option>
-            <option value="ratingDesc">Rating: High → Low</option>
-            <option value="titleAsc">Title: A → Z</option>
-          </select>
-          <select
-            className="form-select"
-            style={{ maxWidth: 140 }}
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-          >
-            <option value={6}>6 / page</option>
-            <option value={9}>9 / page</option>
-            <option value={12}>12 / page</option>
-          </select>
-          <div className="align-self-center text-muted ms-2">
-            {total > 0
-              ? `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}`
-              : "No results"}
-          </div>
+      {/* أدوات البحث + الترتيب + حجم الصفحة + عدّاد — تظهر دائمًا، تتعطّل أثناء التحميل */}
+      <div className="d-flex flex-wrap justify-content-center gap-2 pb-3">
+        <input
+          className="form-control"
+          style={{ maxWidth: 280 }}
+          placeholder="Search products..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          
+        />
+        <select
+          className="form-select"
+          style={{ maxWidth: 220 }}
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          disabled={loading}
+        >
+          <option value="none">Sort: Featured</option>
+          <option value="priceAsc">Price: Low → High</option>
+          <option value="priceDesc">Price: High → Low</option>
+          <option value="ratingDesc">Rating: High → Low</option>
+          <option value="titleAsc">Title: A → Z</option>
+        </select>
+        <select
+          className="form-select"
+          style={{ maxWidth: 140 }}
+          value={pageSize}
+          onChange={(e) => setPageSize(Number(e.target.value))}
+          disabled={loading}
+        >
+          <option value={6}>6 / page</option>
+          <option value={9}>9 / page</option>
+          <option value={12}>12 / page</option>
+        </select>
+        <div className="align-self-center text-muted ms-2">
+          {total > 0
+            ? `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}`
+            : loading
+            ? "Loading..."
+            : "No results"}
         </div>
-      )}
+      </div>
 
       <div className="row justify-content-center">
         {loading ? (
@@ -218,11 +231,7 @@ const Products = () => {
           data.map((product) => {
             const wished = inWishlist(product.id);
             return (
-              <div
-                id={product.id}
-                key={product.id}
-                className="col-md-4 col-sm-6 col-12 mb-4"
-              >
+              <div id={product.id} key={product.id} className="col-md-4 col-sm-6 col-12 mb-4">
                 <div className="card text-center h-100 d-flex">
                   <div
                     className="p-3"
@@ -235,47 +244,33 @@ const Products = () => {
                   >
                     <img
                       className="img-fluid"
-                      src={product.image || '/placeholder-image.jpg'}
+                      src={product.image || "/placeholder-image.jpg"}
                       alt={product.title}
                       style={{ maxHeight: "100%" }}
                       onError={(e) => {
-                        e.target.src = '/placeholder-image.jpg';
+                        e.currentTarget.src = "/placeholder-image.jpg";
                       }}
                     />
                   </div>
 
                   <div className="card-body d-flex flex-column">
                     <h5 className="card-title">
-                      {product.title.length > 40
-                        ? product.title.substring(0, 40) + "..."
-                        : product.title}
+                      {product.title.length > 40 ? product.title.substring(0, 40) + "..." : product.title}
                     </h5>
-                    <p
-                      className="text-muted mb-2"
-                      title={`Rating: ${product.rating?.rate ?? 0}`}
-                    >
+                    <p className="text-muted mb-2" title={`Rating: ${product.rating?.rate ?? 0}`}>
                       ★ {product.rating?.rate ?? 0}
                     </p>
 
                     <div className="mt-auto">
-                      <div className="lead mb-2">
-                        {formatPrice(product.price)}
-                      </div>
+                      <div className="lead mb-2">{formatPrice(product.price)}</div>
 
                       {/* الأزرار: التفاصيل / إضافة للسلة / المفضلة */}
                       <div className="d-flex justify-content-center gap-2">
-                        <Link
-                          to={`/product/${product.id}`}
-                          className="btn btn-outline-dark btn-sm"
-                        >
+                        <Link to={`/product/${product.id}`} className="btn btn-outline-dark btn-sm">
                           Details
                         </Link>
 
-                        <button
-                          className="btn btn-dark btn-sm"
-                          type="button"
-                          onClick={() => addProduct(product)}
-                        >
+                        <button className="btn btn-dark btn-sm" type="button" onClick={() => addProduct(product)}>
                           Add to Cart
                         </button>
 
@@ -292,9 +287,7 @@ const Products = () => {
                           }}
                         >
                           <i className={`fa ${wished ? "fa-heart" : "fa-heart-o"} me-1`} />
-                          <span className="d-none d-sm-inline">
-                            {wished ? "Wishlisted" : "Wishlist"}
-                          </span>
+                          <span className="d-none d-sm-inline">{wished ? "Wishlisted" : "Wishlist"}</span>
                         </button>
                       </div>
                     </div>
@@ -307,7 +300,7 @@ const Products = () => {
       </div>
 
       {/* أزرار الترقيم */}
-      {!loading && totalPages > 1 && (
+      {totalPages > 1 && (
         <nav aria-label="Products pages" className="mt-2">
           <ul className="pagination justify-content-center">
             <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
@@ -315,6 +308,7 @@ const Products = () => {
                 type="button"
                 className="page-link"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={loading}
               >
                 « Prev
               </button>
@@ -322,39 +316,26 @@ const Products = () => {
 
             {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
               let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (page <= 3) {
-                pageNum = i + 1;
-              } else if (page >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = page - 2 + i;
-              }
+              if (totalPages <= 5) pageNum = i + 1;
+              else if (page <= 3) pageNum = i + 1;
+              else if (page >= totalPages - 2) pageNum = totalPages - 4 + i;
+              else pageNum = page - 2 + i;
 
               return (
-                <li
-                  key={pageNum}
-                  className={`page-item ${pageNum === page ? "active" : ""}`}
-                >
-                  <button
-                    type="button"
-                    className="page-link"
-                    onClick={() => setPage(pageNum)}
-                  >
+                <li key={pageNum} className={`page-item ${pageNum === page ? "active" : ""}`}>
+                  <button type="button" className="page-link" onClick={() => setPage(pageNum)} disabled={loading}>
                     {pageNum}
                   </button>
                 </li>
               );
             })}
 
-            <li
-              className={`page-item ${page === totalPages ? "disabled" : ""}`}
-            >
+            <li className={`page-item ${page === totalPages ? "disabled" : ""}`}>
               <button
                 type="button"
                 className="page-link"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={loading}
               >
                 Next »
               </button>
@@ -367,4 +348,3 @@ const Products = () => {
 };
 
 export default Products;
-

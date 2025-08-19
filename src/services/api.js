@@ -1,140 +1,66 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// src/services/api.js
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-class ApiService {
-  constructor() {
-    this.baseURL = API_BASE_URL;
-    this.token = localStorage.getItem('accessToken');
+function buildUrl(path, params) {
+  const url = new URL(path.startsWith('http') ? path : `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`);
+  if (params && typeof params === 'object') {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+    });
   }
-
-  async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    };
-
-    if (this.token) {
-      config.headers.Authorization = `Bearer ${this.token}`;
-    }
-
-    try {
-      const response = await fetch(url, config);
-      const data = await response.json();
-
-     if (!response.ok) {
-  // Show detailed validation errors if available
-  if (data.details && Array.isArray(data.details)) {
-    const errorMessages = data.details.map(detail => detail.msg).join(', ');
-    throw new Error(errorMessages);
-  }
-  throw new Error(data.error || 'API request failed');
+  return url.toString();
 }
 
-      return data;
-    } catch (error) {
-      console.error('API Error:', error);
-      throw error;
-    }
-  }
+async function httpRequest(path, { method = 'GET', body, headers, params } = {}) {
+  const token = localStorage.getItem('accessToken');
+  const res = await fetch(buildUrl(path, params), {
+    method,
+    credentials: 'include', // لو عندك كوكي refresh
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(headers || {})
+    },
+    body: body ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined
+  });
 
-  // Auth methods
-  async register(userData) {
-    const response = await this.request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    });
-    
-    if (response.accessToken) {
-      this.setToken(response.accessToken);
-    }
-    
-    return response;
-  }
+  const contentType = res.headers.get('content-type') || '';
+  const data = contentType.includes('application/json') ? await res.json() : await res.text();
 
-  async login(credentials) {
-    const response = await this.request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
-    
-    if (response.accessToken) {
-      this.setToken(response.accessToken);
-    }
-    
-    return response;
+  if (!res.ok) {
+    const message = (data && data.error) || (data && data.message) || res.statusText;
+    throw new Error(message);
   }
+  return data;
+}
 
+const ApiService = {
+  // يحافظ على نفس الواجهة المستعملة في مشروعك
+  async request(url, options) {
+    return httpRequest(url, options);
+  },
+
+  // auth
   async logout() {
-    const response = await this.request('/auth/logout', {
-      method: 'POST',
-    });
-    
-    this.clearToken();
-    return response;
-  }
-
-  // Products methods
-  async getProducts(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    const endpoint = queryString ? `/products?${queryString}` : '/products';
-    return this.request(endpoint);
-  }
-
-  async getProduct(idOrSlug) {
-    return this.request(`/products/${idOrSlug}`);
-  }
-
-  // Categories methods
-  async getCategories() {
-    return this.request('/categories');
-  }
-
-  // Wishlist methods
-  async getWishlist() {
-    return this.request('/users/me/wishlist');
-  }
-
-  async toggleWishlist(productId) {
-    return this.request('/users/me/wishlist/toggle', {
-      method: 'POST',
-      body: JSON.stringify({ productId }),
-    });
-  }
-
-  // Orders methods
-  async createOrder(orderData) {
-    return this.request('/orders', {
-      method: 'POST',
-      body: JSON.stringify(orderData),
-    });
-  }
-
-  async getOrder(orderId) {
-    return this.request(`/orders/${orderId}`);
-  }
-
-  // Token management
-  setToken(token) {
-    this.token = token;
-    localStorage.setItem('accessToken', token);
-  }
-
-  clearToken() {
-    this.token = null;
+    await httpRequest('/auth/logout', { method: 'POST' });
     localStorage.removeItem('accessToken');
-  }
+    return { success: true };
+  },
 
-  getToken() {
-    return this.token;
-  }
+  // products
+  async getProducts(params) {
+    return httpRequest('/products', { params });
+  },
+  async getProduct(id) {
+    return httpRequest(`/products/${id}`);
+  },
 
-  isAuthenticated() {
-    return !!this.token;
-  }
-}
+  // categories
+  async getCategories() {
+    return httpRequest('/categories');
+  },
 
-export default new ApiService();
+  // (اختياري) ممكن تضيف هنا رفع/حذف الصور إن احتجته لاحقًا
+};
 
+export default ApiService;

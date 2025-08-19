@@ -54,21 +54,21 @@ const AdminLayout = ({ children }) => {
             <i className="fa fa-cogs me-2"></i>
             Admin Dashboard
           </Link>
-          
-          <button 
-            className="navbar-toggler" 
-            type="button" 
-            data-bs-toggle="collapse" 
+
+          <button
+            className="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
             data-bs-target="#adminNavbar"
           >
             <span className="navbar-toggler-icon"></span>
           </button>
-          
+
           <div className="collapse navbar-collapse" id="adminNavbar">
             <ul className="navbar-nav me-auto">
               <li className="nav-item">
-                <Link 
-                  className={`nav-link ${isActive('/admin') ? 'active' : ''}`} 
+                <Link
+                  className={`nav-link ${isActive('/admin') ? 'active' : ''}`}
                   to="/admin"
                 >
                   <i className="fa fa-dashboard me-1"></i>
@@ -76,8 +76,8 @@ const AdminLayout = ({ children }) => {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link 
-                  className={`nav-link ${isActive('/admin/products') ? 'active' : ''}`} 
+                <Link
+                  className={`nav-link ${isActive('/admin/products') ? 'active' : ''}`}
                   to="/admin/products"
                 >
                   <i className="fa fa-box me-1"></i>
@@ -85,8 +85,8 @@ const AdminLayout = ({ children }) => {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link 
-                  className={`nav-link ${isActive('/admin/categories') ? 'active' : ''}`} 
+                <Link
+                  className={`nav-link ${isActive('/admin/categories') ? 'active' : ''}`}
                   to="/admin/categories"
                 >
                   <i className="fa fa-tags me-1"></i>
@@ -94,8 +94,8 @@ const AdminLayout = ({ children }) => {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link 
-                  className={`nav-link ${isActive('/admin/orders') ? 'active' : ''}`} 
+                <Link
+                  className={`nav-link ${isActive('/admin/orders') ? 'active' : ''}`}
                   to="/admin/orders"
                 >
                   <i className="fa fa-shopping-cart me-1"></i>
@@ -103,19 +103,21 @@ const AdminLayout = ({ children }) => {
                 </Link>
               </li>
             </ul>
-            
+
             <ul className="navbar-nav">
               <li className="nav-item dropdown">
-                <a 
-                  className="nav-link dropdown-toggle" 
-                  href="#" 
-                  role="button" 
+                {/* Replaced <a href="#"> with a button for a11y */}
+                <button
+                  id="adminMenu"
+                  type="button"
+                  className="nav-link dropdown-toggle btn btn-link p-0"
                   data-bs-toggle="dropdown"
+                  aria-expanded="false"
                 >
                   <i className="fa fa-user me-1"></i>
                   {user?.name}
-                </a>
-                <ul className="dropdown-menu">
+                </button>
+                <ul className="dropdown-menu" aria-labelledby="adminMenu">
                   <li>
                     <Link className="dropdown-item" to="/">
                       <i className="fa fa-home me-1"></i>
@@ -145,4 +147,3 @@ const AdminLayout = ({ children }) => {
 };
 
 export default AdminLayout;
-

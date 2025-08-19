@@ -4,6 +4,12 @@ import { useSelector } from "react-redux";
 import MiniCartOffcanvas from "./MiniCartOffcanvas";
 
 const Navbar = () => {
+  // flag from CRA env (.env)
+  const SHOW_LOGIN_LINKS =
+  String(process.env.REACT_APP_SHOW_LOGIN_LINKS || '')
+    .trim()
+    .toLowerCase() === 'true';
+
   const cart = useSelector((state) => state.handleCart || []);
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
 
@@ -46,13 +52,6 @@ const Navbar = () => {
               <span className={`badge ${badgeSkin} ms-2`}>{totalItems}</span>
             </button>
 
-            {/* theme toggle (temporarily disabled) */}
-            {/*
-            <button onClick={toggleTheme} className={`btn ${btnSkin} me-2`}>
-              {dark ? "Light" : "Dark"}
-            </button>
-            */}
-
             {/* burger */}
             <button
               className="navbar-toggler"
@@ -87,12 +86,16 @@ const Navbar = () => {
 
             {/* right inside collapse: auth + desktop cart + wishlist */}
             <div className="buttons text-center d-flex align-items-center">
-              <NavLink to="/login" className={`btn ${btnSkin} m-2`}>
-                <i className="fa fa-sign-in me-1" /> Login
-              </NavLink>
-              <NavLink to="/register" className={`btn ${btnSkin} m-2`}>
-                <i className="fa fa-user-plus me-1" /> Register
-              </NavLink>
+              {SHOW_LOGIN_LINKS && (
+                <>
+                  <NavLink to="/login" className={`btn ${btnSkin} m-2`}>
+                    <i className="fa fa-sign-in me-1" /> Login
+                  </NavLink>
+                  <NavLink to="/register" className={`btn ${btnSkin} m-2`}>
+                    <i className="fa fa-user-plus me-1" /> Register
+                  </NavLink>
+                </>
+              )}
 
               {/* Cart — desktop only */}
               <button

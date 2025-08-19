@@ -1,12 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 
 const ImageUpload = ({ onImageUploaded, existingImages = [], onImageRemoved }) => {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
-  const { user } = useSelector(state => state.auth);
 
   const uploadImage = async (file) => {
     if (!file) return;
@@ -45,7 +43,7 @@ const ImageUpload = ({ onImageUploaded, existingImages = [], onImageRemoved }) =
       }
 
       const data = await response.json();
-      
+
       // Call parent callback with uploaded image data
       onImageUploaded({
         url: data.url,
@@ -63,7 +61,7 @@ const ImageUpload = ({ onImageUploaded, existingImages = [], onImageRemoved }) =
   };
 
   const handleFileSelect = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       uploadImage(file);
     }
@@ -72,8 +70,8 @@ const ImageUpload = ({ onImageUploaded, existingImages = [], onImageRemoved }) =
   const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
-    
-    const file = e.dataTransfer.files[0];
+
+    const file = e.dataTransfer.files?.[0];
     if (file) {
       uploadImage(file);
     }
@@ -94,7 +92,7 @@ const ImageUpload = ({ onImageUploaded, existingImages = [], onImageRemoved }) =
       // If image has publicId, delete from Cloudinary
       if (image.publicId) {
         const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-      const response = await fetch(`${apiUrl}/uploads/image`, {
+        const response = await fetch(`${apiUrl}/uploads/image`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -126,7 +124,7 @@ const ImageUpload = ({ onImageUploaded, existingImages = [], onImageRemoved }) =
   return (
     <div className="mb-4">
       <label className="form-label fw-bold">Product Images</label>
-      
+
       {/* Upload Area */}
       <div
         className={`border-2 border-dashed rounded p-4 text-center mb-3 ${
@@ -146,7 +144,7 @@ const ImageUpload = ({ onImageUploaded, existingImages = [], onImageRemoved }) =
           style={{ display: 'none' }}
           disabled={uploading}
         />
-        
+
         {uploading ? (
           <div>
             <div className="spinner-border text-primary mb-2" role="status">
@@ -176,14 +174,14 @@ const ImageUpload = ({ onImageUploaded, existingImages = [], onImageRemoved }) =
                     className="card-img-top"
                     style={{ height: '150px', objectFit: 'cover' }}
                   />
-                  
+
                   {/* Primary Badge */}
                   {image.isPrimary && (
                     <span className="position-absolute top-0 start-0 badge bg-success m-1">
                       Primary
                     </span>
                   )}
-                  
+
                   {/* Action Buttons */}
                   <div className="position-absolute top-0 end-0 m-1">
                     {!image.isPrimary && (
@@ -212,7 +210,7 @@ const ImageUpload = ({ onImageUploaded, existingImages = [], onImageRemoved }) =
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="card-body p-2">
                   <small className="text-muted d-block text-truncate">
                     {image.url.split('/').pop()}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Footer, Navbar } from "../components";
 import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { loginStart, loginSuccess, loginFailure } from "../store/auth/slice";
 import ApiService from "../services/api";
 import toast from "react-hot-toast";

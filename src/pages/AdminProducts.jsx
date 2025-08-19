@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../components/AdminLayout';
 import ApiService from '../services/api';
@@ -14,14 +14,11 @@ const AdminProducts = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
-  const fetchProducts = async () => {
+  // ✅ لفّ الدالة بـ useCallback وحدّد الديبدنسيز الفعلية
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const params = {
-        page,
-        limit: 10,
-      };
-      
+      const params = { page, limit: 10 };
       if (search) params.q = search;
       if (selectedCategory) params.category = selectedCategory;
 
@@ -35,30 +32,29 @@ const AdminProducts = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const categoriesData = await ApiService.getCategories();
-      setCategories(categoriesData);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    fetchProducts();
   }, [page, search, selectedCategory]);
 
-  const handleDelete = async (productId) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) {
-      return;
-    }
+  // ✅ useEffect يعتمد على الدالة الملفوفة
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
+  // ✅ جلب التصنيفات داخل useEffect مستقل (بدون دالة خارجية)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const categoriesData = await ApiService.getCategories();
+        if (!cancelled) setCategories(categoriesData);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleDelete = async (productId) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
       await ApiService.request(`/products/${productId}`, { method: 'DELETE' });
       toast.success('Product deleted successfully');
@@ -95,18 +91,24 @@ const AdminProducts = () => {
                     className="form-control"
                     placeholder="Search products..."
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setPage(1);
+                    }}
                   />
                 </div>
                 <div className="col-md-4">
                   <select
                     className="form-select"
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedCategory(e.target.value);
+                      setPage(1);
+                    }}
                   >
                     <option value="">All Categories</option>
                     {categories.map((category) => (
-                      <option key={category._id} value={category.slug}>
+                      <option key={category._id} value={category._id}>
                         {category.name}
                       </option>
                     ))}
@@ -248,15 +250,10 @@ const AdminProducts = () => {
                         
                         {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
                           let pageNum;
-                          if (totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (page <= 3) {
-                            pageNum = i + 1;
-                          } else if (page >= totalPages - 2) {
-                            pageNum = totalPages - 4 + i;
-                          } else {
-                            pageNum = page - 2 + i;
-                          }
+                          if (totalPages <= 5) pageNum = i + 1;
+                          else if (page <= 3) pageNum = i + 1;
+                          else if (page >= totalPages - 2) pageNum = totalPages - 4 + i;
+                          else pageNum = page - 2 + i;
 
                           return (
                             <li
@@ -303,4 +300,3 @@ const AdminProducts = () => {
 };
 
 export default AdminProducts;
-

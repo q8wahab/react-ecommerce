@@ -24,45 +24,51 @@ const AdminProductForm = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // ✅ نقلنا جلب البيانات داخل useEffect لتفادي تحذير الـ deps
   useEffect(() => {
-    fetchCategories();
-    if (isEdit) {
-      fetchProduct();
-    }
-  }, [id, isEdit]);
+    let cancelled = false;
 
-  const fetchCategories = async () => {
-    try {
-      const categoriesData = await ApiService.getCategories();
-      setCategories(categoriesData);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      toast.error('Failed to load categories');
-    }
-  };
+    (async () => {
+      try {
+        // load categories
+        const categoriesData = await ApiService.getCategories();
+        if (!cancelled) setCategories(categoriesData);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        if (!cancelled) toast.error('Failed to load categories');
+      }
 
-  const fetchProduct = async () => {
-    try {
-      setLoading(true);
-      const product = await ApiService.getProduct(id);
-      setFormData({
-        title: product.title || '',
-        slug: product.slug || '',
-        description: product.description || '',
-        priceInFils: product.priceInFils || '',
-        stock: product.stock || '',
-        category: product.category?._id || '',
-        images: product.images || [],
-        status: product.status || 'active'
-      });
-    } catch (error) {
-      console.error('Error fetching product:', error);
-      toast.error('Failed to load product');
-      navigate('/admin/products');
-    } finally {
-      setLoading(false);
-    }
-  };
+      // load product if editing
+      if (isEdit && id) {
+        try {
+          if (!cancelled) setLoading(true);
+          const product = await ApiService.getProduct(id);
+          if (!cancelled) {
+            setFormData({
+              title: product.title || '',
+              slug: product.slug || '',
+              description: product.description || '',
+              priceInFils: product.priceInFils || '',
+              stock: product.stock || '',
+              category: product.category?._id || '',
+              images: product.images || [],
+              status: product.status || 'active'
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching product:', error);
+          toast.error('Failed to load product');
+          if (!cancelled) navigate('/admin/products');
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isEdit, navigate]);
 
   const generateSlug = (title) => {
     return title
@@ -70,11 +76,12 @@ const AdminProductForm = () => {
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
-      .trim('-');
+      .replace(/^-+|-+$/g, ''); // ملاحظة: trim لا تقبل باراميتر؛ نقدر نحسنها لاحقاً لو حبيت
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -123,7 +130,7 @@ const AdminProductForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim()) {
       toast.error('Product title is required');
       return;
@@ -136,11 +143,11 @@ const AdminProductForm = () => {
 
     try {
       setLoading(true);
-      
+
       const productData = {
         ...formData,
-        priceInFils: parseInt(formData.priceInFils),
-        stock: parseInt(formData.stock) || 0
+        priceInFils: parseInt(formData.priceInFils, 10),
+        stock: parseInt(formData.stock, 10) || 0
       };
 
       if (isEdit) {
@@ -184,8 +191,8 @@ const AdminProductForm = () => {
         <div className="col-12">
           <div className="d-flex justify-content-between align-items-center mb-4">
             <h1 className="h3">{isEdit ? 'Edit Product' : 'Add New Product'}</h1>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn btn-secondary"
               onClick={() => navigate('/admin/products')}
             >
@@ -302,8 +309,8 @@ const AdminProductForm = () => {
                 </div>
 
                 <div className="d-flex gap-2">
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary"
                     disabled={loading}
                   >
@@ -316,8 +323,8 @@ const AdminProductForm = () => {
                       isEdit ? 'Update Product' : 'Create Product'
                     )}
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn btn-secondary"
                     onClick={() => navigate('/admin/products')}
                   >
@@ -349,4 +356,3 @@ const AdminProductForm = () => {
 };
 
 export default AdminProductForm;
-

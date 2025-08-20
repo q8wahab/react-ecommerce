@@ -6,12 +6,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
 import store from "./store";
 import "./theme.css";
-import "bootstrap/dist/css/bootstrap.min.css";
+// (اختياري) عندك استيرادين للـ CSS تبع Bootstrap — يكفي واحد
+// import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js"; // لازم للبورجر/collapse
+
 import Wishlist from "./pages/Wishlist";
-
-
-
 
 import {
   Home,
@@ -25,11 +24,15 @@ import {
   Checkout,
   PageNotFound,
 } from "./pages";
+
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProducts from "./pages/AdminProducts";
 import AdminProductForm from "./pages/AdminProductForm";
 import ScrollToTop from "./components/ScrollToTop";
 import { Toaster } from "react-hot-toast";
+
+// 👇 استيراد صفحة النجاح
+import OrderSuccess from "./pages/OrderSuccess";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -47,18 +50,24 @@ root.render(
           <Route path="/register" element={<Register />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/wishlist" element={<Wishlist />} />
-          
+
+          {/* صفحة النجاح */}
+          <Route path="/order-success/:id" element={<OrderSuccess />} />
+
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/admin/products/new" element={<AdminProductForm />} />
           <Route path="/admin/products/:id/edit" element={<AdminProductForm />} />
-          
+
+          {/* 404 */}
           <Route path="*" element={<PageNotFound />} />
           <Route path="/product/*" element={<PageNotFound />} />
         </Routes>
+
+        {/* يفضّل توستر يكون داخل Provider عشان ياخذ الثيم والكونتكست */}
+        <Toaster />
       </Provider>
     </ScrollToTop>
-    <Toaster />
   </BrowserRouter>
 );

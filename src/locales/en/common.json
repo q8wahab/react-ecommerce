@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "brand": "24ozKw",
+    "home": "Home",
+    "products": "Products",
+    "about": "About",
+    "contact": "Contact",
+    "cart": "Cart",
+    "wishlist": "Wishlist",
+    "login": "Login",
+    "register": "Register",
+    "lang_ar": "Arabic",
+    "lang_en": "English"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "summary": "Order Summary",
+    "items_label": "Items",
+    "shipping": "Shipping",
+    "free": "Free",
+    "total": "Total",
+    "free_shipping_remaining": "Spend {{amount}} more to get free shipping",
+    "shipping_data": "Shipping Details",
+    "name": "Full Name",
+    "area": "Area",
+    "block": "Block",
+    "street": "Street",
+    "avenue_optional": "Avenue (optional)",
+    "house_no": "House No.",
+    "phone_8": "Phone (8 digits)",
+    "phone_placeholder": "e.g. 51234567",
+    "phone_invalid": "Please enter exactly 8 digits",
+    "email_optional": "Email (optional)",
+    "notes_optional": "Delivery notes (optional)",
+    "notes_ph": "e.g. Call before arrival / leave at door...",
+    "sending": "Sending...",
+    "submit_no_pay": "Place Order (No Payment)",
+    "no_payment_note": "No payment is required now — we will contact you to confirm delivery.",
+    "back_to_products": "Back to Products",
+    "toast_created": "Order created successfully",
+    "toast_failed": "Failed to create order"
+  }
+}

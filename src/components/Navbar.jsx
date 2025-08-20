@@ -2,16 +2,19 @@ import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useSelector } from "react-redux";
 import MiniCartOffcanvas from "./MiniCartOffcanvas";
+import { useTranslation } from "react-i18next";
 
 const Navbar = () => {
+  const { t, i18n } = useTranslation();
+
   // flag from CRA env (.env)
   const SHOW_LOGIN_LINKS =
-  String(process.env.REACT_APP_SHOW_LOGIN_LINKS || '')
-    .trim()
-    .toLowerCase() === 'true';
+    String(process.env.REACT_APP_SHOW_LOGIN_LINKS || "")
+      .trim()
+      .toLowerCase() === "true";
 
   const cart = useSelector((state) => state.handleCart || []);
-  const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+  const totalItems = cart.reduce((sum, item) => sum + (item.qty || 0), 0);
 
   // read saved theme only (toggle button is commented out for now)
   const [dark, setDark] = useState(false);
@@ -28,17 +31,39 @@ const Navbar = () => {
   const btnSkin = dark ? "btn-outline-light" : "btn-outline-dark";
   const badgeSkin = dark ? "bg-light text-dark" : "bg-dark text-white";
 
+  const setLang = (lng) => {
+    if (i18n.language !== lng) i18n.changeLanguage(lng);
+  };
+
   return (
     <>
       <nav className={navClass}>
         <div className="container">
           {/* left: brand */}
           <NavLink className="navbar-brand fw-bold fs-4 px-2" to="/">
-            24ozKw
+            {t("nav.brand")}
           </NavLink>
 
           {/* right: mobile cart (outside collapse) + burger */}
           <div className="d-flex align-items-center ms-auto">
+            {/* Language switcher – mobile */}
+            <div className="btn-group me-2 d-lg-none" role="group" aria-label="Language">
+              <button
+                type="button"
+                className={`btn ${btnSkin} ${i18n.language === "ar" ? "active" : ""}`}
+                onClick={() => setLang("ar")}
+              >
+                {t("nav.lang_ar")}
+              </button>
+              <button
+                type="button"
+                className={`btn ${btnSkin} ${i18n.language === "en" ? "active" : ""}`}
+                onClick={() => setLang("en")}
+              >
+                {t("nav.lang_en")}
+              </button>
+            </div>
+
             {/* Cart — mobile only */}
             <button
               className={`btn ${btnSkin} me-2 d-lg-none`}
@@ -48,7 +73,7 @@ const Navbar = () => {
               aria-controls="miniCart"
             >
               <i className="fa fa-shopping-cart me-1" />
-              <span className="d-none d-sm-inline">Cart</span>
+              <span className="d-none d-sm-inline">{t("nav.cart")}</span>
               <span className={`badge ${badgeSkin} ms-2`}>{totalItems}</span>
             </button>
 
@@ -71,46 +96,65 @@ const Navbar = () => {
             {/* left links */}
             <ul className="navbar-nav me-auto my-2 text-center">
               <li className="nav-item">
-                <NavLink className="nav-link" to="/">Home</NavLink>
+                <NavLink className="nav-link" to="/">{t("nav.home")}</NavLink>
               </li>
               <li className="nav-item">
-                <NavLink className="nav-link" to="/products">Products</NavLink>
+                <NavLink className="nav-link" to="/products">{t("nav.products")}</NavLink>
               </li>
               <li className="nav-item">
-                <NavLink className="nav-link" to="/about">About</NavLink>
+                <NavLink className="nav-link" to="/about">{t("nav.about")}</NavLink>
               </li>
               <li className="nav-item">
-                <NavLink className="nav-link" to="/contact">Contact</NavLink>
+                <NavLink className="nav-link" to="/contact">{t("nav.contact")}</NavLink>
               </li>
             </ul>
 
-            {/* right inside collapse: auth + desktop cart + wishlist */}
-            <div className="buttons text-center d-flex align-items-center">
+            {/* right inside collapse: language + auth + desktop cart + wishlist */}
+            <div className="buttons text-center d-flex align-items-center gap-2">
+              {/* Language switcher — desktop */}
+              <div className="btn-group" role="group" aria-label="Language">
+                <button
+                  type="button"
+                  className={`btn ${btnSkin} ${i18n.language === "ar" ? "active" : ""}`}
+                  onClick={() => setLang("ar")}
+                >
+                  {t("nav.lang_ar")}
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${btnSkin} ${i18n.language === "en" ? "active" : ""}`}
+                  onClick={() => setLang("en")}
+                >
+                  {t("nav.lang_en")}
+                </button>
+              </div>
+
               {SHOW_LOGIN_LINKS && (
                 <>
-                  <NavLink to="/login" className={`btn ${btnSkin} m-2`}>
-                    <i className="fa fa-sign-in me-1" /> Login
+                  <NavLink to="/login" className={`btn ${btnSkin}`}>
+                    <i className="fa fa-sign-in me-1" /> {t("nav.login")}
                   </NavLink>
-                  <NavLink to="/register" className={`btn ${btnSkin} m-2`}>
-                    <i className="fa fa-user-plus me-1" /> Register
+                  <NavLink to="/register" className={`btn ${btnSkin}`}>
+                    <i className="fa fa-user-plus me-1" /> {t("nav.register")}
                   </NavLink>
                 </>
               )}
 
               {/* Cart — desktop only */}
               <button
-                className={`btn ${btnSkin} m-2 d-none d-lg-inline-flex`}
+                className={`btn ${btnSkin} d-none d-lg-inline-flex`}
                 type="button"
                 data-bs-toggle="offcanvas"
                 data-bs-target="#miniCart"
                 aria-controls="miniCart"
               >
                 <i className="fa fa-shopping-cart me-1" />
-                Cart <span className={`badge ${badgeSkin} ms-2`}>{totalItems}</span>
+                {t("nav.cart")}{" "}
+                <span className={`badge ${badgeSkin} ms-2`}>{totalItems}</span>
               </button>
 
-              <NavLink to="/wishlist" className={`btn ${btnSkin} m-2`}>
-                <i className="fa fa-heart me-1" /> Wishlist
+              <NavLink to="/wishlist" className={`btn ${btnSkin}`}>
+                <i className="fa fa-heart me-1" /> {t("nav.wishlist")}
               </NavLink>
             </div>
           </div>

@@ -6,16 +6,19 @@ import { formatPrice } from "../utils/format";
 import ApiService from "../services/api";
 import toast from "react-hot-toast";
 import { clearCart } from "../redux/action";
+import { useTranslation } from "react-i18next";
 
 const FREE_SHIP_THRESHOLD = 15; // KWD
 const BASE_SHIPPING = 2;        // KWD
 
 const Checkout = () => {
+  const { t } = useTranslation();
+
   const cart = useSelector((state) => state.handleCart || []);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // 👇 فلاغ يمنع الرجوع للمنتجات أثناء التحويل لصفحة النجاح
+  // فلاغ يمنع الرجوع للمنتجات أثناء التحويل لصفحة النجاح
   const [redirecting, setRedirecting] = useState(false);
   const shouldRedirectToProducts = !redirecting && (!cart || cart.length === 0);
 
@@ -122,32 +125,34 @@ const Checkout = () => {
       };
 
       const res = await ApiService.createOrder(payload);
-      toast.success("تم إنشاء الطلب بنجاح");
+      toast.success(t("checkout.toast_created", { defaultValue: "تم إنشاء الطلب بنجاح" }));
 
-      // 👇 امنع شرط الرجوع للمنتجات، ثم انتقل لصفحة النجاح
+      // امنع شرط الرجوع للمنتجات، ثم انتقل لصفحة النجاح
       setRedirecting(true);
       navigate(`/order-success/${res.id}`, {
         state: { invoiceNo: res.invoiceNo, totalInFils: res.totalInFils },
         replace: true,
       });
 
-      // 👇 بعد الانتقال مباشرةً: فرّغ السلة ونظّف التخزين المحلي
+      // بعد الانتقال مباشرةً: فرّغ السلة ونظّف التخزين المحلي
       setTimeout(() => {
         dispatch(clearCart());
         clearCheckoutLocalStorage();
       }, 0);
     } catch (err) {
       console.error(err);
-      toast.error(err?.message || "فشل إنشاء الطلب");
+      toast.error(err?.message || t("checkout.toast_failed", { defaultValue: "فشل إنشاء الطلب" }));
       setSubmitting(false);
     }
   };
+
+  const remainingForFree = Math.max(0, FREE_SHIP_THRESHOLD - subtotal);
 
   return (
     <>
       <Navbar />
       <div className="container my-3 py-3">
-        <h1 className="text-center">Checkout</h1>
+        <h1 className="text-center">{t("checkout.title", { defaultValue: "إتمام الشراء" })}</h1>
         <hr />
 
         {shouldRedirectToProducts ? (
@@ -159,18 +164,21 @@ const Checkout = () => {
               <div className="col-md-5 col-lg-4 order-md-last">
                 <div className="card mb-4">
                   <div className="card-header py-3 bg-light">
-                    <h5 className="mb-0">ملخص الطلب</h5>
+                    <h5 className="mb-0">{t("checkout.summary", { defaultValue: "ملخص الطلب" })}</h5>
                   </div>
                   <div className="card-body">
                     <ul className="list-group list-group-flush">
                       <li className="list-group-item d-flex justify-content-between align-items-center border-0 px-0 pb-0">
-                        المنتجات ({totalItems}) <span>{formatPrice(subtotal)}</span>
+                        {t("checkout.items_label", { defaultValue: "المنتجات" })} ({totalItems})
+                        <span>{formatPrice(subtotal)}</span>
                       </li>
                       <li className="list-group-item d-flex justify-content-between align-items-center px-0">
-                        الشحن
+                        {t("checkout.shipping", { defaultValue: "الشحن" })}
                         <span>
                           {shipping === 0 ? (
-                            <span className="text-success">مجاني</span>
+                            <span className="text-success">
+                              {t("checkout.free", { defaultValue: "مجاني" })}
+                            </span>
                           ) : (
                             formatPrice(shipping)
                           )}
@@ -178,10 +186,13 @@ const Checkout = () => {
                       </li>
                       <li className="list-group-item d-flex justify-content-between align-items-center border-0 px-0 mb-3">
                         <div>
-                          <strong>الإجمالي</strong>
+                          <strong>{t("checkout.total", { defaultValue: "الإجمالي" })}</strong>
                           {subtotal < FREE_SHIP_THRESHOLD && (
                             <div className="small text-muted">
-                              تبقّى {formatPrice(FREE_SHIP_THRESHOLD - subtotal)} للشحن المجاني
+                              {t("checkout.free_shipping_remaining", {
+                                defaultValue: "تبقّى {{amount}} للشحن المجاني",
+                                amount: formatPrice(remainingForFree),
+                              })}
                             </div>
                           )}
                         </div>
@@ -193,7 +204,10 @@ const Checkout = () => {
 
                     <ul className="list-group list-group-flush">
                       {cart.map((item) => (
-                        <li key={item.id} className="list-group-item d-flex justify-content-between align-items-center">
+                        <li
+                          key={item.id || item._id}
+                          className="list-group-item d-flex justify-content-between align-items-center"
+                        >
                           <span className="text-truncate" style={{ maxWidth: 220 }}>
                             {item.title} × {item.qty || 1}
                           </span>
@@ -209,13 +223,15 @@ const Checkout = () => {
               <div className="col-md-7 col-lg-8">
                 <div className="card mb-4">
                   <div className="card-header py-3">
-                    <h4 className="mb-0">بيانات الشحن</h4>
+                    <h4 className="mb-0">{t("checkout.shipping_data", { defaultValue: "بيانات الشحن" })}</h4>
                   </div>
                   <div className="card-body">
                     <form onSubmit={handleSubmit} noValidate>
                       <div className="row g-3">
                         <div className="col-12 my-1">
-                          <label htmlFor="name" className="form-label">الاسم *</label>
+                          <label htmlFor="name" className="form-label">
+                            {t("checkout.name", { defaultValue: "الاسم الكامل" })} *
+                          </label>
                           <input
                             type="text"
                             className="form-control"
@@ -227,7 +243,9 @@ const Checkout = () => {
                         </div>
 
                         <div className="col-md-6 my-1">
-                          <label htmlFor="area" className="form-label">المنطقه *</label>
+                          <label htmlFor="area" className="form-label">
+                            {t("checkout.area", { defaultValue: "المنطقة" })} *
+                          </label>
                           <input
                             type="text"
                             className="form-control"
@@ -239,7 +257,9 @@ const Checkout = () => {
                         </div>
 
                         <div className="col-md-6 my-1">
-                          <label htmlFor="block" className="form-label">القطعه *</label>
+                          <label htmlFor="block" className="form-label">
+                            {t("checkout.block", { defaultValue: "القطعة" })} *
+                          </label>
                           <input
                             type="text"
                             className="form-control"
@@ -251,7 +271,9 @@ const Checkout = () => {
                         </div>
 
                         <div className="col-md-6 my-1">
-                          <label htmlFor="street" className="form-label">الشارع *</label>
+                          <label htmlFor="street" className="form-label">
+                            {t("checkout.street", { defaultValue: "الشارع" })} *
+                          </label>
                           <input
                             type="text"
                             className="form-control"
@@ -263,7 +285,9 @@ const Checkout = () => {
                         </div>
 
                         <div className="col-md-6 my-1">
-                          <label htmlFor="avenue" className="form-label">جاده (اختياري)</label>
+                          <label htmlFor="avenue" className="form-label">
+                            {t("checkout.avenue_optional", { defaultValue: "جادة (اختياري)" })}
+                          </label>
                           <input
                             type="text"
                             className="form-control"
@@ -274,7 +298,9 @@ const Checkout = () => {
                         </div>
 
                         <div className="col-md-6 my-1">
-                          <label htmlFor="houseNo" className="form-label">رقم المنزل *</label>
+                          <label htmlFor="houseNo" className="form-label">
+                            {t("checkout.house_no", { defaultValue: "رقم المنزل" })} *
+                          </label>
                           <input
                             type="text"
                             className="form-control"
@@ -286,7 +312,9 @@ const Checkout = () => {
                         </div>
 
                         <div className="col-md-6 my-1">
-                          <label htmlFor="phone" className="form-label">رقم التلفون (8 أرقام) *</label>
+                          <label htmlFor="phone" className="form-label">
+                            {t("checkout.phone_8", { defaultValue: "رقم الهاتف (8 أرقام)" })} *
+                          </label>
                           <input
                             type="tel"
                             inputMode="numeric"
@@ -294,16 +322,20 @@ const Checkout = () => {
                             id="phone"
                             value={form.phone}
                             onChange={handleChange("phone")}
-                            placeholder="e.g. 51234567"
+                            placeholder={t("checkout.phone_placeholder", { defaultValue: "مثال: 51234567" })}
                             required
                           />
                           {form.phone && !phoneValid && (
-                            <div className="invalid-feedback">الرجاء إدخال 8 أرقام فقط</div>
+                            <div className="invalid-feedback">
+                              {t("checkout.phone_invalid", { defaultValue: "الرجاء إدخال 8 أرقام فقط" })}
+                            </div>
                           )}
                         </div>
 
                         <div className="col-md-6 my-1">
-                          <label htmlFor="email" className="form-label">الإيميل (اختياري)</label>
+                          <label htmlFor="email" className="form-label">
+                            {t("checkout.email_optional", { defaultValue: "الإيميل (اختياري)" })}
+                          </label>
                           <input
                             type="email"
                             className="form-control"
@@ -315,14 +347,18 @@ const Checkout = () => {
                         </div>
 
                         <div className="col-12 my-1">
-                          <label htmlFor="notes" className="form-label">تعليمات التوصيل (اختياري)</label>
+                          <label htmlFor="notes" className="form-label">
+                            {t("checkout.notes_optional", { defaultValue: "تعليمات التوصيل (اختياري)" })}
+                          </label>
                           <input
                             type="text"
                             className="form-control"
                             id="notes"
                             value={form.notes}
                             onChange={handleChange("notes")}
-                            placeholder="مثال: اتصل قبل الوصول / اتركها عند الباب..."
+                            placeholder={t("checkout.notes_ph", {
+                              defaultValue: "مثال: اتصل قبل الوصول / اتركها عند الباب..."
+                            })}
                           />
                         </div>
                       </div>
@@ -333,14 +369,16 @@ const Checkout = () => {
                         {submitting ? (
                           <>
                             <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
-                            جاري الإرسال...
+                            {t("checkout.sending", { defaultValue: "جاري الإرسال..." })}
                           </>
                         ) : (
-                          "إرسال الطلب (بدون دفع)"
+                          t("checkout.submit_no_pay", { defaultValue: "إرسال الطلب (بدون دفع)" })
                         )}
                       </button>
                       <p className="text-muted small mt-2 mb-0">
-                        لن يتم طلب أي دفع الآن — سيتم التواصل لتأكيد التوصيل.
+                        {t("checkout.no_payment_note", {
+                          defaultValue: "لن يتم طلب أي دفع الآن — سيتم التواصل لتأكيد التوصيل."
+                        })}
                       </p>
                     </form>
                   </div>
@@ -349,7 +387,7 @@ const Checkout = () => {
                 {/* رجوع للمنتجات */}
                 <div className="text-end">
                   <Link to="/products" className="btn btn-outline-secondary btn-sm">
-                    الرجوع للمنتجات
+                    {t("checkout.back_to_products", { defaultValue: "الرجوع للمنتجات" })}
                   </Link>
                 </div>
               </div>

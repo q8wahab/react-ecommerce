@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "brand": "24ozKw",
+    "home": "الرئيسية",
+    "products": "المنتجات",
+    "about": "من نحن",
+    "contact": "تواصل",
+    "cart": "السلة",
+    "wishlist": "المفضلة",
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "lang_ar": "عربي",
+    "lang_en": "English"
+  },
+  "checkout": {
+    "title": "إتمام الشراء",
+    "summary": "ملخص الطلب",
+    "items_label": "المنتجات",
+    "shipping": "الشحن",
+    "free": "مجاني",
+    "total": "الإجمالي",
+    "free_shipping_remaining": "تبقّى {{amount}} للشحن المجاني",
+    "shipping_data": "بيانات الشحن",
+    "name": "الاسم الكامل",
+    "area": "المنطقة",
+    "block": "القطعة",
+    "street": "الشارع",
+    "avenue_optional": "جادة (اختياري)",
+    "house_no": "رقم المنزل",
+    "phone_8": "رقم الهاتف (8 أرقام)",
+    "phone_placeholder": "مثال: 51234567",
+    "phone_invalid": "الرجاء إدخال 8 أرقام فقط",
+    "email_optional": "الإيميل (اختياري)",
+    "notes_optional": "تعليمات التوصيل (اختياري)",
+    "notes_ph": "مثال: اتصل قبل الوصول / اتركها عند الباب...",
+    "sending": "جاري الإرسال...",
+    "submit_no_pay": "إرسال الطلب (بدون دفع)",
+    "no_payment_note": "لن يتم طلب أي دفع الآن — سيتم التواصل لتأكيد التوصيل.",
+    "back_to_products": "الرجوع للمنتجات",
+    "toast_created": "تم إنشاء الطلب بنجاح",
+    "toast_failed": "فشل إنشاء الطلب"
+  }
+}

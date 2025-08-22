@@ -3,20 +3,26 @@ import { useTranslation } from "react-i18next";
 
 const LanguageSwitcher = ({ className = "" }) => {
   const { i18n } = useTranslation();
-  const current = i18n.language === "ar" ? "ar" : "en";
+  const isAr = i18n.language === "ar";
 
   const toggle = () => {
-    const next = current === "ar" ? "en" : "ar";
+    const next = isAr ? "en" : "ar";
     i18n.changeLanguage(next);
-    // حدّث اتجاه الصفحة ولغة الـ HTML
-    document.documentElement.dir = i18n.dir(next);
+    // ❌ لا نغيّر اتجاه الصفحة
     document.documentElement.lang = next;
     localStorage.setItem("lang", next);
   };
 
   return (
-    <button type="button" onClick={toggle} className={`btn btn-outline-secondary ${className}`}>
-      {current === "ar" ? "EN" : "عربي"}
+    <button
+      type="button"
+      onClick={toggle}
+      className={`btn btn-outline-secondary d-inline-flex align-items-center gap-1 ${className}`}
+      title={isAr ? "Switch to English" : "التبديل للعربية"}
+    >
+      <span style={{ opacity: isAr ? 1 : 0.4, fontWeight: isAr ? "bold" : "normal" }}>ع</span>
+      <span style={{ opacity: 0.5 }}>|</span>
+      <span style={{ opacity: isAr ? 0.4 : 1, fontWeight: isAr ? "normal" : "bold" }}>E</span>
     </button>
   );
 };

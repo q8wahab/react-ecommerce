@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 const Navbar = () => {
   const { t, i18n } = useTranslation();
 
-  // flag from CRA env (.env)
   const SHOW_LOGIN_LINKS =
     String(process.env.REACT_APP_SHOW_LOGIN_LINKS || "")
       .trim()
@@ -16,7 +15,6 @@ const Navbar = () => {
   const cart = useSelector((state) => state.handleCart || []);
   const totalItems = cart.reduce((sum, item) => sum + (item.qty || 0), 0);
 
-  // read saved theme only (toggle button is commented out for now)
   const [dark, setDark] = useState(false);
   useEffect(() => {
     const saved = localStorage.getItem("theme") === "dark";
@@ -31,8 +29,12 @@ const Navbar = () => {
   const btnSkin = dark ? "btn-outline-light" : "btn-outline-dark";
   const badgeSkin = dark ? "bg-light text-dark" : "bg-dark text-white";
 
-  const setLang = (lng) => {
-    if (i18n.language !== lng) i18n.changeLanguage(lng);
+  const isAr = i18n.language?.startsWith("ar");
+  const toggleLang = () => {
+    const next = isAr ? "en" : "ar";
+    i18n.changeLanguage(next);
+    document.documentElement.lang = next;
+    localStorage.setItem("lang", next);
   };
 
   return (
@@ -46,23 +48,16 @@ const Navbar = () => {
 
           {/* right: mobile cart (outside collapse) + burger */}
           <div className="d-flex align-items-center ms-auto">
-            {/* Language switcher – mobile */}
-            <div className="btn-group me-2 d-lg-none" role="group" aria-label="Language">
-              <button
-                type="button"
-                className={`btn ${btnSkin} ${i18n.language === "ar" ? "active" : ""}`}
-                onClick={() => setLang("ar")}
-              >
-                {t("nav.lang_ar")}
-              </button>
-              <button
-                type="button"
-                className={`btn ${btnSkin} ${i18n.language === "en" ? "active" : ""}`}
-                onClick={() => setLang("en")}
-              >
-                {t("nav.lang_en")}
-              </button>
-            </div>
+            {/* Language toggle – mobile */}
+            <button
+              type="button"
+              onClick={toggleLang}
+              aria-label={isAr ? "Switch to English" : "التبديل للعربية"}
+              title={isAr ? "Switch to English" : "التبديل للعربية"}
+              className={`btn ${btnSkin} me-2 d-lg-none`}
+            >
+              {isAr ? "E" : "ع"}
+            </button>
 
             {/* Cart — mobile only */}
             <button
@@ -111,23 +106,16 @@ const Navbar = () => {
 
             {/* right inside collapse: language + auth + desktop cart + wishlist */}
             <div className="buttons text-center d-flex align-items-center gap-2">
-              {/* Language switcher — desktop */}
-              <div className="btn-group" role="group" aria-label="Language">
-                <button
-                  type="button"
-                  className={`btn ${btnSkin} ${i18n.language === "ar" ? "active" : ""}`}
-                  onClick={() => setLang("ar")}
-                >
-                  {t("nav.lang_ar")}
-                </button>
-                <button
-                  type="button"
-                  className={`btn ${btnSkin} ${i18n.language === "en" ? "active" : ""}`}
-                  onClick={() => setLang("en")}
-                >
-                  {t("nav.lang_en")}
-                </button>
-              </div>
+              {/* Language toggle – desktop */}
+              <button
+                type="button"
+                onClick={toggleLang}
+                aria-label={isAr ? "Switch to English" : "التبديل للعربية"}
+                title={isAr ? "Switch to English" : "التبديل للعربية"}
+                className={`btn ${btnSkin} d-none d-lg-inline-flex`}
+              >
+                {isAr ? "E" : "ع"}
+              </button>
 
               {SHOW_LOGIN_LINKS && (
                 <>

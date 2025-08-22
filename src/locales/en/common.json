@@ -12,6 +12,63 @@
     "lang_ar": "Arabic",
     "lang_en": "English"
   },
+
+  "products": {
+    "title": "Products",
+    "search_placeholder": "Search products…",
+    "sort": "Sort",
+    "sort_price_asc": "Price: Low to High",
+    "sort_price_desc": "Price: High to Low",
+    "sort_new": "Newest",
+    "category": "Category",
+    "no_results": "No matching products",
+    "all": "All",
+    "sort_featured": "Sort: Featured",
+    "sort_rating_desc": "Rating: High to Low",
+    "sort_title_asc": "Title: A → Z",
+    "per_page": "{{count}} / page",
+    "showing": "Showing {{from}}–{{to}} of {{total}}",
+    "rating_label": "Rating",
+    "try_adjust_filters": "Try adjusting your search or filters"
+  },
+
+  "productCard": {
+    "add_to_cart": "Add to cart",
+    "in_stock": "In stock",
+    "out_of_stock": "Out of stock",
+    "added_to_cart": "Added to cart"
+  },
+
+  "product": {
+    "details": "Details"
+  },
+
+  "wishlist": {
+    "wishlist": "Wishlist",
+    "in_wishlist": "Wishlisted",
+    "add_title": "Add to Wishlist",
+    "remove_title": "Remove from Wishlist",
+    "added": "Added to wishlist",
+    "removed": "Removed from wishlist"
+  },
+
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Your cart is empty",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "free_shipping_note": "Free shipping for orders ≥ 15 KWD; otherwise 2 KWD",
+    "checkout": "Checkout",
+    "qty": "Quantity",
+    "remove": "Remove",
+
+    "decrease": "Decrease",
+    "increase": "Increase",
+    "line_total": "Line total",
+    "view_cart": "View Cart",
+    "clear_cart": "Clear Cart"
+  },
+
   "checkout": {
     "title": "Checkout",
     "summary": "Order Summary",
@@ -19,7 +76,7 @@
     "shipping": "Shipping",
     "free": "Free",
     "total": "Total",
-    "free_shipping_remaining": "Spend {{amount}} more to get free shipping",
+    "free_shipping_remaining": "{{amount}} left for free shipping",
     "shipping_data": "Shipping Details",
     "name": "Full Name",
     "area": "Area",
@@ -32,12 +89,55 @@
     "phone_invalid": "Please enter exactly 8 digits",
     "email_optional": "Email (optional)",
     "notes_optional": "Delivery notes (optional)",
-    "notes_ph": "e.g. Call before arrival / leave at door...",
+    "notes_ph": "e.g. Call before arriving / Leave at the door...",
     "sending": "Sending...",
     "submit_no_pay": "Place Order (No Payment)",
-    "no_payment_note": "No payment is required now — we will contact you to confirm delivery.",
+    "no_payment_note": "No payment required now — you will be contacted to confirm delivery.",
     "back_to_products": "Back to Products",
     "toast_created": "Order created successfully",
     "toast_failed": "Failed to create order"
+  },
+
+  "order": {
+    "success_title": "Order Confirmed",
+    "success_msg": "Thank you! Your order has been placed successfully.",
+    "invoice": "Invoice No.",
+    "back_home": "Back to Home"
+  },
+
+  "auth": {
+    "login_title": "Login",
+    "register_title": "Register"
+  },
+
+  "validation": {
+    "required": "This field is required",
+    "phone_format": "Phone number must be exactly 8 digits",
+    "email_format": "Please enter a valid email"
+  },
+
+  "errors": {
+    "generic": "Something went wrong, please try again."
+  },
+
+  "ui": {
+    "loading": "Loading...",
+    "prev": "« Prev",
+    "next": "Next »",
+    "close": "Close"
+  },
+  "contact": {
+  "title": "Contact Us",
+  "subtitle": "We’d love to hear from you",
+  "form": {
+    "name": "Full Name",
+    "email": "Email Address",
+    "message": "Your Message",
+    "send": "Send",
+    "sending": "Sending...",
+    "success": "Your message has been sent successfully",
+    "error": "An error occurred, please try again"
   }
+}
+
 }

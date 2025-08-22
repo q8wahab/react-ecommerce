@@ -4,8 +4,10 @@ import { useNavigate } from "react-router-dom";
 import Offcanvas from "bootstrap/js/dist/offcanvas";
 import { addCart, delCart, clearCart } from "../redux/action";
 import { formatPrice } from "../utils/format";
+import { useTranslation } from "react-i18next";
 
 const MiniCartOffcanvas = () => {
+  const { t } = useTranslation();
   const cart = useSelector((s) => s.handleCart || []);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -23,7 +25,6 @@ const MiniCartOffcanvas = () => {
     const instance = Offcanvas.getInstance(el) || new Offcanvas(el);
 
     const onHidden = () => {
-      // safety cleanup in case anything lingered
       el.removeEventListener("hidden.bs.offcanvas", onHidden);
       document.querySelectorAll(".offcanvas-backdrop").forEach((b) => b.remove());
       document.body.style.overflow = "";
@@ -32,7 +33,6 @@ const MiniCartOffcanvas = () => {
       navigate(path);
     };
 
-    // wait for the hide animation to finish, then navigate
     el.addEventListener("hidden.bs.offcanvas", onHidden, { once: true });
     instance.hide();
   };
@@ -50,26 +50,26 @@ const MiniCartOffcanvas = () => {
     >
       <div className="offcanvas-header">
         <h5 className="offcanvas-title" id="miniCartLabel">
-          My Cart ({totalItems})
+          {t("cart.title")} ({totalItems})
         </h5>
         <button
           type="button"
           className="btn-close text-reset"
           data-bs-dismiss="offcanvas"
-          aria-label="Close"
+          aria-label={t("ui.close", "Close")}
         />
       </div>
 
       <div className="offcanvas-body d-flex flex-column">
         {cart.length === 0 ? (
           <div className="text-center my-5">
-            <p className="lead mb-3">Your cart is empty</p>
+            <p className="lead mb-3">{t("cart.empty")}</p>
             <button
               type="button"
               className="btn btn-outline-dark"
               onClick={() => closeOffcanvasAndNavigate("/products")}
             >
-              <i className="fa fa-arrow-left" /> Continue Shopping
+              <i className="fa fa-arrow-left" /> {t("checkout.back_to_products")}
             </button>
           </div>
         ) : (
@@ -101,7 +101,7 @@ const MiniCartOffcanvas = () => {
                         <button
                           className="btn btn-sm btn-outline-secondary"
                           onClick={() => dispatch(delCart(item))}
-                          title="Decrease"
+                          title={t("cart.decrease", "Decrease")}
                           type="button"
                         >
                           <i className="fa fa-minus" />
@@ -110,7 +110,7 @@ const MiniCartOffcanvas = () => {
                         <button
                           className="btn btn-sm btn-outline-secondary"
                           onClick={() => dispatch(addCart(item))}
-                          title="Increase"
+                          title={t("cart.increase", "Increase")}
                           type="button"
                         >
                           <i className="fa fa-plus" />
@@ -119,7 +119,7 @@ const MiniCartOffcanvas = () => {
                         <button
                           className="btn btn-sm btn-outline-danger ms-3"
                           onClick={() => removeAllOf(item)}
-                          title="Remove item"
+                          title={t("cart.remove", "Remove item")}
                           type="button"
                         >
                           <i className="fa fa-trash" />
@@ -127,7 +127,7 @@ const MiniCartOffcanvas = () => {
                       </div>
 
                       <small className="text-muted">
-                        Line: {formatPrice(item.price * item.qty)}
+                        {t("cart.line_total", "Line")}: {formatPrice(item.price * item.qty)}
                       </small>
                     </div>
                   </div>
@@ -137,7 +137,7 @@ const MiniCartOffcanvas = () => {
 
             <div className="mt-auto">
               <div className="d-flex justify-content-between mb-2">
-                <strong>Subtotal</strong>
+                <strong>{t("cart.subtotal")}</strong>
                 <strong>{formatPrice(subtotal)}</strong>
               </div>
 
@@ -147,14 +147,14 @@ const MiniCartOffcanvas = () => {
                   className="btn btn-outline-dark w-50"
                   onClick={() => closeOffcanvasAndNavigate("/cart")}
                 >
-                  View Cart
+                  {t("cart.view_cart", "View Cart")}
                 </button>
                 <button
                   type="button"
                   className="btn btn-dark w-50"
                   onClick={() => closeOffcanvasAndNavigate("/checkout")}
                 >
-                  Checkout
+                  {t("cart.checkout")}
                 </button>
               </div>
 
@@ -163,7 +163,7 @@ const MiniCartOffcanvas = () => {
                 className="btn btn-outline-danger w-100 mt-2"
                 onClick={() => dispatch(clearCart())}
               >
-                <i className="fa fa-trash" /> Clear Cart
+                <i className="fa fa-trash" /> {t("cart.clear_cart", "Clear Cart")}
               </button>
             </div>
           </>

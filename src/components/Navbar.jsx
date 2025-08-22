@@ -96,9 +96,9 @@ const Navbar = () => {
               <li className="nav-item">
                 <NavLink className="nav-link" to="/products">{t("nav.products")}</NavLink>
               </li>
-              <li className="nav-item">
+              {/* <li className="nav-item">
                 <NavLink className="nav-link" to="/about">{t("nav.about")}</NavLink>
-              </li>
+              </li> */}
               <li className="nav-item">
                 <NavLink className="nav-link" to="/contact">{t("nav.contact")}</NavLink>
               </li>

@@ -10,8 +10,11 @@ import "react-loading-skeleton/dist/skeleton.css";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { formatPrice } from "../utils/format";
+import { useTranslation } from "react-i18next";
 
 const Products = () => {
+  const { t } = useTranslation();
+
   const [data, setData] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,13 +47,13 @@ const Products = () => {
       rating: product.rating,
     };
     dispatch(addCart(cartProduct));
-    toast.success("Added to cart");
+    toast.success(t("productCard.added_to_cart", "Added to cart"));
   };
 
   // ✅ Debounce للبحث: حدّث debouncedSearch بعد 300ms من توقف الكتابة
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
-    return () => clearTimeout(t);
+    const tmr = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(tmr);
   }, [search]);
 
   // Load categories (مرة واحدة)
@@ -108,7 +111,7 @@ const Products = () => {
           setData([]);
           setTotal(0);
           setTotalPages(1);
-          toast.error("Failed to load products");
+          toast.error(t("errors.generic"));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -142,16 +145,20 @@ const Products = () => {
     </>
   );
 
+  const from = total ? (page - 1) * pageSize + 1 : 0;
+  const to = total ? Math.min(page * pageSize, total) : 0;
+
   return (
     <div className="container my-3 py-3">
+      {/* العنوان */}
       <div className="row">
         <div className="col-12">
-          <h2 className="display-5 text-center">Latest Products</h2>
+          <h2 className="display-5 text-center">{t("products.title")}</h2>
           <hr />
         </div>
       </div>
 
-      {/* أزرار التصنيفات — نخليها دايمًا ظاهرة، ونعطّل الأزرار أثناء التحميل */}
+      {/* التصنيفات */}
       <div className="buttons text-center py-4">
         <button
           className={`btn btn-sm m-2 ${!selectedCategory ? "btn-dark" : "btn-outline-dark"}`}
@@ -159,7 +166,7 @@ const Products = () => {
           type="button"
           disabled={loading}
         >
-          All
+          {t("products.all", "All")}
         </button>
         {categories.map((category) => (
           <button
@@ -176,16 +183,16 @@ const Products = () => {
         ))}
       </div>
 
-      {/* أدوات البحث + الترتيب + حجم الصفحة + عدّاد — تظهر دائمًا، تتعطّل أثناء التحميل */}
+      {/* البحث + الترتيب + حجم الصفحة + عدّاد */}
       <div className="d-flex flex-wrap justify-content-center gap-2 pb-3">
         <input
           className="form-control"
           style={{ maxWidth: 280 }}
-          placeholder="Search products..."
+          placeholder={t("products.search_placeholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          
         />
+
         <select
           className="form-select"
           style={{ maxWidth: 220 }}
@@ -193,39 +200,47 @@ const Products = () => {
           onChange={(e) => setSortBy(e.target.value)}
           disabled={loading}
         >
-          <option value="none">Sort: Featured</option>
-          <option value="priceAsc">Price: Low → High</option>
-          <option value="priceDesc">Price: High → Low</option>
-          <option value="ratingDesc">Rating: High → Low</option>
-          <option value="titleAsc">Title: A → Z</option>
+          <option value="none">{t("products.sort_featured", "Sort: Featured")}</option>
+          <option value="priceAsc">{t("products.sort_price_asc")}</option>
+          <option value="priceDesc">{t("products.sort_price_desc")}</option>
+          <option value="ratingDesc">{t("products.sort_rating_desc", "Rating: High to Low")}</option>
+          <option value="titleAsc">{t("products.sort_title_asc", "Title: A → Z")}</option>
         </select>
+
         <select
           className="form-select"
-          style={{ maxWidth: 140 }}
+          style={{ maxWidth: 160 }}
           value={pageSize}
           onChange={(e) => setPageSize(Number(e.target.value))}
           disabled={loading}
         >
-          <option value={6}>6 / page</option>
-          <option value={9}>9 / page</option>
-          <option value={12}>12 / page</option>
+          <option value={6}>{t("products.per_page", { count: 6, defaultValue: "{{count}} / page" })}</option>
+          <option value={9}>{t("products.per_page", { count: 9, defaultValue: "{{count}} / page" })}</option>
+          <option value={12}>{t("products.per_page", { count: 12, defaultValue: "{{count}} / page" })}</option>
         </select>
+
         <div className="align-self-center text-muted ms-2">
           {total > 0
-            ? `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}`
+            ? t("products.showing", {
+                from,
+                to,
+                total,
+                defaultValue: "Showing {{from}}–{{to}} of {{total}}"
+              })
             : loading
-            ? "Loading..."
-            : "No results"}
+            ? t("ui.loading", "Loading...")
+            : t("products.no_results")}
         </div>
       </div>
 
+      {/* الشبكة */}
       <div className="row justify-content-center">
         {loading ? (
           <LoadingView />
         ) : data.length === 0 ? (
           <div className="col-12 text-center py-5">
-            <h4>No products found</h4>
-            <p className="text-muted">Try adjusting your search or filters</p>
+            <h4>{t("products.no_results")}</h4>
+            <p className="text-muted">{t("products.try_adjust_filters", "Try adjusting your search or filters")}</p>
           </div>
         ) : (
           data.map((product) => {
@@ -257,7 +272,7 @@ const Products = () => {
                     <h5 className="card-title">
                       {product.title.length > 40 ? product.title.substring(0, 40) + "..." : product.title}
                     </h5>
-                    <p className="text-muted mb-2" title={`Rating: ${product.rating?.rate ?? 0}`}>
+                    <p className="text-muted mb-2" title={`${t("products.rating_label", "Rating")}: ${product.rating?.rate ?? 0}`}>
                       ★ {product.rating?.rate ?? 0}
                     </p>
 
@@ -267,27 +282,29 @@ const Products = () => {
                       {/* الأزرار: التفاصيل / إضافة للسلة / المفضلة */}
                       <div className="d-flex justify-content-center gap-2">
                         <Link to={`/product/${product.id}`} className="btn btn-outline-dark btn-sm">
-                          Details
+                          {t("product.details", "Details")}
                         </Link>
 
                         <button className="btn btn-dark btn-sm" type="button" onClick={() => addProduct(product)}>
-                          Add to Cart
+                          {t("productCard.add_to_cart")}
                         </button>
 
                         <button
                           type="button"
                           className={`btn ${wished ? "btn-danger" : "btn-outline-danger"} btn-sm`}
-                          title={wished ? "Remove from Wishlist" : "Add to Wishlist"}
+                          title={wished ? t("wishlist.remove_title", "Remove from Wishlist") : t("wishlist.add_title", "Add to Wishlist")}
                           aria-pressed={wished}
-                          aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+                          aria-label={wished ? t("wishlist.remove_title", "Remove from wishlist") : t("wishlist.add_title", "Add to wishlist")}
                           onClick={(e) => {
                             e.stopPropagation();
                             dispatch(toggleWishlist(product));
-                            toast.success(wished ? "Removed from wishlist" : "Added to wishlist");
+                            toast.success(wished ? t("wishlist.removed", "Removed from wishlist") : t("wishlist.added", "Added to wishlist"));
                           }}
                         >
                           <i className={`fa ${wished ? "fa-heart" : "fa-heart-o"} me-1`} />
-                          <span className="d-none d-sm-inline">{wished ? "Wishlisted" : "Wishlist"}</span>
+                          <span className="d-none d-sm-inline">
+                            {wished ? t("wishlist.in_wishlist", "Wishlisted") : t("wishlist.wishlist", "Wishlist")}
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -310,7 +327,7 @@ const Products = () => {
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={loading}
               >
-                « Prev
+                {t("ui.prev", "« Prev")}
               </button>
             </li>
 
@@ -337,7 +354,7 @@ const Products = () => {
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={loading}
               >
-                Next »
+                {t("ui.next", "Next »")}
               </button>
             </li>
           </ul>

@@ -12,6 +12,63 @@
     "lang_ar": "عربي",
     "lang_en": "English"
   },
+
+  "products": {
+    "title": "المنتجات",
+    "search_placeholder": "ابحث عن منتج…",
+    "sort": "ترتيب",
+    "sort_price_asc": "السعر: من الأقل إلى الأعلى",
+    "sort_price_desc": "السعر: من الأعلى إلى الأقل",
+    "sort_new": "الأحدث",
+    "category": "التصنيف",
+    "no_results": "لا توجد منتجات مطابقة",
+    "all": "الكل",
+    "sort_featured": "الترتيب: المميز",
+    "sort_rating_desc": "التقييم: من الأعلى إلى الأقل",
+    "sort_title_asc": "العنوان: أ → ي",
+    "per_page": "{{count}} / صفحة",
+    "showing": "عرض {{from}}–{{to}} من {{total}}",
+    "rating_label": "التقييم",
+    "try_adjust_filters": "جرّب تغيير البحث أو الفلاتر"
+  },
+
+  "productCard": {
+    "add_to_cart": "أضف إلى السلة",
+    "in_stock": "متوفر",
+    "out_of_stock": "غير متوفر",
+    "added_to_cart": "تمت الإضافة إلى السلة"
+  },
+
+  "product": {
+    "details": "التفاصيل"
+  },
+
+  "wishlist": {
+    "wishlist": "المفضلة",
+    "in_wishlist": "مُضافة للمفضلة",
+    "add_title": "أضف إلى المفضلة",
+    "remove_title": "إزالة من المفضلة",
+    "added": "تمت الإضافة إلى المفضلة",
+    "removed": "تمت الإزالة من المفضلة"
+  },
+
+  "cart": {
+    "title": "سلة التسوق",
+    "empty": "السلة فارغة",
+    "subtotal": "المجموع الفرعي",
+    "shipping": "الشحن",
+    "free_shipping_note": "شحن مجاني للطلبات ≥ 15 د.ك، وإلا 2 د.ك",
+    "checkout": "إتمام الشراء",
+    "qty": "الكمية",
+    "remove": "إزالة",
+
+    "decrease": "إنقاص",
+    "increase": "زيادة",
+    "line_total": "الإجمالي الجزئي",
+    "view_cart": "عرض السلة",
+    "clear_cart": "إفراغ السلة"
+  },
+
   "checkout": {
     "title": "إتمام الشراء",
     "summary": "ملخص الطلب",
@@ -39,5 +96,49 @@
     "back_to_products": "الرجوع للمنتجات",
     "toast_created": "تم إنشاء الطلب بنجاح",
     "toast_failed": "فشل إنشاء الطلب"
+  },
+
+  "order": {
+    "success_title": "تم تأكيد الطلب",
+    "success_msg": "شكرًا لك! تم إرسال طلبك بنجاح.",
+    "invoice": "رقم الفاتورة",
+    "back_home": "العودة للرئيسية"
+  },
+
+  "auth": {
+    "login_title": "تسجيل الدخول",
+    "register_title": "إنشاء حساب"
+  },
+
+  "validation": {
+    "required": "هذا الحقل مطلوب",
+    "phone_format": "رقم الهاتف يجب أن يكون ٨ أرقام",
+    "email_format": "يرجى إدخال بريد إلكتروني صحيح"
+  },
+
+  "errors": {
+    "generic": "حدث خطأ، حاول مرة أخرى"
+  },
+
+  "ui": {
+    "loading": "جاري التحميل…",
+    "prev": "« السابق",
+    "next": "التالي »",
+    "close": "إغلاق"
+  },
+  
+  "contact": {
+  "title": "تواصل معنا",
+  "subtitle": "نرحب بأي استفسارات أو ملاحظات",
+  "form": {
+    "name": "الاسم الكامل",
+    "email": "البريد الإلكتروني",
+    "message": "رسالتك",
+    "send": "إرسال",
+    "sending": "جاري الإرسال...",
+    "success": "تم إرسال رسالتك بنجاح",
+    "error": "حدث خطأ أثناء الإرسال، حاول مرة أخرى"
   }
+}
+
 }

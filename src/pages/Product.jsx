@@ -32,54 +32,82 @@ const Product = () => {
     const getProduct = async () => {
       setLoading(true);
       setLoading2(true);
-      
+
       try {
         // Fetch single product using ApiService
         const data = await ApiService.getProduct(id);
-        
+
         // Transform backend data to frontend format
+        const price =
+          data.priceInFils != null ? data.priceInFils / 1000 : data.price;
+        const oldPrice =
+          data.oldPriceInFils != null ? data.oldPriceInFils / 1000 : data.oldPrice;
+        const discountPercent =
+          oldPrice && oldPrice > price ? Math.round((1 - price / oldPrice) * 100) : 0;
+
         const transformedProduct = {
           id: data._id,
           title: data.title,
-          price: data.priceInFils / 1000, // Convert fils to KWD
-          image: data.images?.find(img => img.isPrimary)?.url || data.images?.[0]?.url || '/placeholder-image.jpg',
+          price,
+          oldPrice,
+          discountPercent, // ✅ جديد
+          image:
+            data.images?.find((img) => img.isPrimary)?.url ||
+            data.images?.[0]?.url ||
+            "/placeholder-image.jpg",
           category: data.category?.name || data.category,
           rating: data.rating,
-          description: data.description || '',
-          stock: data.stock || 0
+          description: data.description || "",
+          stock: data.stock || 0,
         };
-        
+
         setProduct(transformedProduct);
         setLoading(false);
 
         // Fetch similar products by category
         if (data.category?.slug) {
-          const response = await ApiService.getProducts({ 
-            category: data.category.slug, 
-            limit: 4 
+          const response = await ApiService.getProducts({
+            category: data.category.slug,
+            limit: 4,
           });
-          
+
           // Transform similar products
-          const transformedSimilarProducts = (response.items || response).map(product => ({
-            id: product._id,
-            title: product.title,
-            price: product.priceInFils / 1000,
-            image: product.image || product.images?.find(img => img.isPrimary)?.url || product.images?.[0]?.url || '/placeholder-image.jpg',
-            category: product.category?.name,
-            rating: product.rating
-          }));
-          
+          const transformedSimilarProducts = (response.items || response).map(
+            (p) => {
+              const sPrice = p.priceInFils != null ? p.priceInFils / 1000 : p.price;
+              const sOld =
+                p.oldPriceInFils != null ? p.oldPriceInFils / 1000 : p.oldPrice;
+              const sDiscount =
+                sOld && sOld > sPrice ? Math.round((1 - sPrice / sOld) * 100) : 0;
+
+              return {
+                id: p._id,
+                title: p.title,
+                price: sPrice,
+                oldPrice: sOld,
+                discountPercent: sDiscount, // ✅ جديد
+                image:
+                  p.image ||
+                  p.images?.find((img) => img.isPrimary)?.url ||
+                  p.images?.[0]?.url ||
+                  "/placeholder-image.jpg",
+                category: p.category?.name,
+                rating: p.rating,
+              };
+            }
+          );
+
           setSimilarProducts(transformedSimilarProducts);
         }
         setLoading2(false);
       } catch (error) {
-        console.error('Error fetching product:', error);
-        toast.error('Failed to load product details');
+        console.error("Error fetching product:", error);
+        toast.error("Failed to load product details");
         setLoading(false);
         setLoading2(false);
       }
     };
-    
+
     getProduct();
   }, [id]);
 
@@ -102,70 +130,93 @@ const Product = () => {
     </div>
   );
 
-  const ShowProduct = () => (
-    <div className="container my-5 py-2">
-      <div className="row">
-        <div className="col-md-6 col-sm-12 py-3">
-          <img
-            className="img-fluid"
-            src={product.image}
-            alt={product.title}
-            width="400"
-            height="400"
-            onError={(e) => {
-              e.target.src = '/placeholder-image.jpg';
-            }}
-          />
-        </div>
-        <div className="col-md-6 py-5">
-          <h4 className="text-uppercase text-muted">{product.category}</h4>
-          <h1 className="display-5">{product.title}</h1>
-          <p className="lead">
-            {product.rating && product.rating.rate} <i className="fa fa-star"></i>
-          </p>
-          <h3 className="display-6 my-4">{formatPrice(product.price)}</h3>
-          <p className="lead">{product.description}</p>
-          {product.stock > 0 ? (
-            <p className="text-success">In Stock ({product.stock} available)</p>
-          ) : (
-            <p className="text-danger">Out of Stock</p>
-          )}
+  const ShowProduct = () => {
+    const showOld = product.oldPrice != null && product.oldPrice > product.price;
 
-          <div className="d-flex align-items-center flex-wrap gap-2">
-            <button
-              className="btn btn-outline-dark"
-              onClick={() => addProduct(product)}
-              type="button"
-              disabled={product.stock === 0}
-            >
-              Add to Cart
-            </button>
+    return (
+      <div className="container my-5 py-2">
+        <div className="row">
+          <div className="col-md-6 col-sm-12 py-3">
+            <div className="position-relative d-inline-block">
+              {product.discountPercent > 0 && (
+                <span className="badge bg-danger position-absolute top-0 start-0 m-2">
+                  -{product.discountPercent}%
+                </span>
+              )}
+              <img
+                className="img-fluid"
+                src={product.image}
+                alt={product.title}
+                width="400"
+                height="400"
+                onError={(e) => {
+                  e.target.src = "/placeholder-image.jpg";
+                }}
+              />
+            </div>
+          </div>
+          <div className="col-md-6 py-5">
+            <h4 className="text-uppercase text-muted">{product.category}</h4>
+            <h1 className="display-5">{product.title}</h1>
+            <p className="lead">
+              {product.rating && product.rating.rate} <i className="fa fa-star"></i>
+            </p>
 
-            <Link to="/cart" className="btn btn-dark mx-1">
-              Go to Cart
-            </Link>
+            {/* السعر الحالي + القديم */}
+            <div className="my-4">
+              <span className="display-6">{formatPrice(product.price)}</span>
+              {showOld && (
+                <span
+                  className="text-muted ms-3 text-decoration-line-through"
+                >
+                  {formatPrice(product.oldPrice)}
+                </span>
+              )}
+            </div>
 
-            {/* WISHLIST BUTTON (always rendered) */}
-            <button
-              data-test="wishlist-btn"
-              className={`btn ${isWishlisted ? "btn-danger" : "btn-outline-danger"}`}
-              onClick={() => onToggleWishlist(product)}
-              type="button"
-              title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
-            >
-              <i className={`fa ${isWishlisted ? "fa-heart" : "fa-heart-o"} me-1`} />
-              {isWishlisted ? "Wishlisted" : "Wishlist"}
-            </button>
+            <p className="lead">{product.description}</p>
+            {product.stock > 0 ? (
+              <p className="text-success">In Stock ({product.stock} available)</p>
+            ) : (
+              <p className="text-danger">Out of Stock</p>
+            )}
+
+            <div className="d-flex align-items-center flex-wrap gap-2">
+              <button
+                className="btn btn-outline-dark"
+                onClick={() => addProduct(product)}
+                type="button"
+                disabled={product.stock === 0}
+              >
+                Add to Cart
+              </button>
+
+              <Link to="/cart" className="btn btn-dark mx-1">
+                Go to Cart
+              </Link>
+
+              {/* WISHLIST BUTTON (always rendered) */}
+              <button
+                data-test="wishlist-btn"
+                className={`btn ${isWishlisted ? "btn-danger" : "btn-outline-danger"}`}
+                onClick={() => onToggleWishlist(product)}
+                type="button"
+                title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+              >
+                <i className={`fa ${isWishlisted ? "fa-heart" : "fa-heart-o"} me-1`} />
+                {isWishlisted ? "Wishlisted" : "Wishlist"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const Loading2 = () => (
     <div className="my-4 py-4">
       <div className="d-flex">
-        {[1,2,3,4].map((k) => (
+        {[1, 2, 3, 4].map((k) => (
           <div key={k} className="mx-4">
             <Skeleton height={400} width={250} />
           </div>
@@ -178,22 +229,47 @@ const Product = () => {
     <div className="py-4 my-4">
       <div className="d-flex">
         {similarProducts.map((item) => {
-          const inWishlist = wishlist.some((w) => String(w.id) === String(item.id));
+          const inWishlist = wishlist.some(
+            (w) => String(w.id) === String(item.id)
+          );
+          const showOld = item.oldPrice != null && item.oldPrice > item.price;
+
           return (
             <div key={item.id} className="card mx-4 text-center" style={{ width: 260 }}>
-              <img
-                className="card-img-top p-3"
-                src={item.image}
-                alt={item.title}
-                height={300}
-                width={300}
-                style={{ objectFit: "contain" }}
-              />
+              <div className="position-relative">
+                {item.discountPercent > 0 && (
+                  <span className="badge bg-danger position-absolute top-0 start-0 m-2">
+                    -{item.discountPercent}%
+                  </span>
+                )}
+                <img
+                  className="card-img-top p-3"
+                  src={item.image}
+                  alt={item.title}
+                  height={300}
+                  width={300}
+                  style={{ objectFit: "contain" }}
+                  onError={(e) => (e.currentTarget.src = "/placeholder-image.jpg")}
+                />
+              </div>
               <div className="card-body d-flex flex-column">
                 <h5 className="card-title mb-1">
-                  {item.title.length > 15 ? item.title.substring(0, 15) + "..." : item.title}
+                  {item.title.length > 15
+                    ? item.title.substring(0, 15) + "..."
+                    : item.title}
                 </h5>
-                <p className="lead mb-2">{formatPrice(item.price)}</p>
+
+                {/* السعر الحالي + القديم للمنتجات المشابهة */}
+                <div className="mb-2">
+                  <span className="lead">{formatPrice(item.price)}</span>
+                  {showOld && (
+                    <span
+                      className="text-muted ms-2 text-decoration-line-through"
+                    >
+                      {formatPrice(item.oldPrice)}
+                    </span>
+                  )}
+                </div>
 
                 <div className="mt-auto d-flex justify-content-center gap-2">
                   <Link to={`/product/${item.id}`} className="btn btn-outline-dark btn-sm">

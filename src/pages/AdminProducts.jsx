@@ -14,7 +14,7 @@ const AdminProducts = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
-  // ✅ لفّ الدالة بـ useCallback وحدّد الديبدنسيز الفعلية
+  // ✅ جلب المنتجات
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
@@ -34,12 +34,11 @@ const AdminProducts = () => {
     }
   }, [page, search, selectedCategory]);
 
-  // ✅ useEffect يعتمد على الدالة الملفوفة
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // ✅ جلب التصنيفات داخل useEffect مستقل (بدون دالة خارجية)
+  // ✅ جلب التصنيفات
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -65,6 +64,10 @@ const AdminProducts = () => {
     }
   };
 
+  // ✅ مساعد لتنسيق KWD
+  const formatKwd = (fils) =>
+    typeof fils === 'number' ? `KWD ${(fils / 1000).toFixed(3)}` : '—';
+
   return (
     <AdminLayout>
       <div className="row">
@@ -84,7 +87,7 @@ const AdminProducts = () => {
         <div className="col-12">
           <div className="card">
             <div className="card-body">
-              <div className="row">
+              <div className="row g-2">
                 <div className="col-md-6">
                   <input
                     type="text"
@@ -151,85 +154,116 @@ const AdminProducts = () => {
               ) : products.length > 0 ? (
                 <>
                   <div className="table-responsive">
-                    <table className="table table-bordered table-hover">
+                    <table className="table table-bordered table-hover align-middle">
                       <thead className="table-light">
                         <tr>
                           <th>Image</th>
                           <th>Title</th>
                           <th>Category</th>
-                          <th>Price</th>
+                          <th>Price</th>{/* نحتفظ بنفس العمود ونوضح القديم داخله */}
                           <th>Stock</th>
                           <th>Status</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {products.map((product) => (
-                          <tr key={product._id}>
-                            <td>
-                              <img 
-                                src={product.image || product.images?.[0]?.url || '/placeholder-image.jpg'} 
-                                alt={product.title}
-                                style={{ width: '60px', height: '60px', objectFit: 'cover' }}
-                                className="rounded"
-                                onError={(e) => {
-                                  e.target.src = '/placeholder-image.jpg';
-                                }}
-                              />
-                            </td>
-                            <td>
-                              <div>
-                                <strong>{product.title}</strong>
-                                {product.description && (
-                                  <div className="text-muted small">
-                                    {product.description.length > 50 
-                                      ? product.description.substring(0, 50) + '...'
-                                      : product.description
-                                    }
+                        {products.map((product) => {
+                          const price = product.priceInFils;
+                          const old = product.oldPriceInFils;
+                          const hasDiscount =
+                            typeof old === 'number' &&
+                            typeof price === 'number' &&
+                            old > price;
+                          const discountPercent = hasDiscount
+                            ? Math.round((1 - price / old) * 100)
+                            : 0;
+
+                          return (
+                            <tr key={product._id}>
+                              <td>
+                                <img 
+                                  src={product.image || product.images?.[0]?.url || '/placeholder-image.jpg'} 
+                                  alt={product.title}
+                                  style={{ width: '60px', height: '60px', objectFit: 'cover' }}
+                                  className="rounded"
+                                  onError={(e) => {
+                                    e.target.src = '/placeholder-image.jpg';
+                                  }}
+                                />
+                              </td>
+                              <td>
+                                <div>
+                                  <strong>{product.title}</strong>
+                                  {product.description && (
+                                    <div className="text-muted small">
+                                      {product.description.length > 50 
+                                        ? product.description.substring(0, 50) + '...'
+                                        : product.description
+                                      }
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td>{product.category?.name || 'N/A'}</td>
+
+                              {/* السعر الحالي + القديم + نسبة الخصم */}
+                              <td style={{ minWidth: 160 }}>
+                                <div className="fw-bold">{formatKwd(price)}</div>
+                                {hasDiscount && (
+                                  <div className="small">
+                                    <span className="text-muted text-decoration-line-through">
+                                      {formatKwd(old)}
+                                    </span>
+                                    <span className="badge bg-danger ms-2">
+                                      -{discountPercent}%
+                                    </span>
                                   </div>
                                 )}
-                              </div>
-                            </td>
-                            <td>{product.category?.name || 'N/A'}</td>
-                            <td>KWD {(product.priceInFils / 1000).toFixed(3)}</td>
-                            <td>
-                              <span className={`badge ${product.stock > 0 ? 'bg-success' : 'bg-danger'}`}>
-                                {product.stock || 0}
-                              </span>
-                            </td>
-                            <td>
-                              <span className={`badge ${product.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
-                                {product.status || 'active'}
-                              </span>
-                            </td>
-                            <td>
-                              <div className="btn-group" role="group">
-                                <Link 
-                                  to={`/product/${product._id}`} 
-                                  className="btn btn-sm btn-outline-info"
-                                  target="_blank"
-                                  title="View Product"
-                                >
-                                  <i className="fa fa-eye"></i>
-                                </Link>
-                                <Link 
-                                  to={`/admin/products/${product._id}/edit`} 
-                                  className="btn btn-sm btn-outline-primary"
-                                  title="Edit Product"
-                                >
-                                  <i className="fa fa-edit"></i>
-                                </Link>
-                                <button 
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => handleDelete(product._id)}
-                                  title="Delete Product"
-                                >
-                                  <i className="fa fa-trash"></i>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+
+                              <td>
+                                <span className={`badge ${product.stock > 0 ? 'bg-success' : 'bg-danger'}`}>
+                                  {product.stock || 0}
+                                </span>
+                              </td>
+                              <td>
+                                <span className={`badge ${
+                                  product.status === 'active' ? 'bg-success' :
+                                  product.status === 'draft' ? 'bg-warning text-dark' :
+                                  'bg-secondary'
+                                }`}>
+                                  {product.status || 'active'}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="btn-group" role="group">
+                                  <Link 
+                                    to={`/product/${product._id}`} 
+                                    className="btn btn-sm btn-outline-info"
+                                    target="_blank"
+                                    title="View Product"
+                                  >
+                                    <i className="fa fa-eye"></i>
+                                  </Link>
+                                  <Link 
+                                    to={`/admin/products/${product._id}/edit`} 
+                                    className="btn btn-sm btn-outline-primary"
+                                    title="Edit Product"
+                                  >
+                                    <i className="fa fa-edit"></i>
+                                  </Link>
+                                  <button 
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => handleDelete(product._id)}
+                                    title="Delete Product"
+                                  >
+                                    <i className="fa fa-trash"></i>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

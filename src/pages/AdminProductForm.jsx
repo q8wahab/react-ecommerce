@@ -1,9 +1,28 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/AdminProductForm.jsx
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/AdminLayout';
 import ImageUpload from '../components/ImageUpload';
 import ApiService from '../services/api';
 import toast from 'react-hot-toast';
+
+const toIntOrNull = (v) => {
+  if (v === '' || v === undefined) return null;
+  const n = Number(v);
+  return Number.isInteger(n) ? n : null;
+};
+
+const normalizeForCompare = (obj) => ({
+  ...obj,
+  priceInFils: obj.priceInFils ?? null,
+  oldPriceInFils: obj.oldPriceInFils ?? null,
+  stock: obj.stock ?? 0,
+  category: obj.category ?? '',
+  description: obj.description ?? '',
+  status: obj.status ?? 'active',
+  title: obj.title ?? '',
+  slug: obj.slug ?? '',
+});
 
 const AdminProductForm = () => {
   const { id } = useParams();
@@ -15,48 +34,57 @@ const AdminProductForm = () => {
     slug: '',
     description: '',
     priceInFils: '',
+    oldPriceInFils: '',
     stock: '',
     category: '',
     images: [],
-    status: 'active'
+    status: 'active',
   });
 
+  const initialRef = useRef(null); // نحتفظ بنسخة الأصل للمقارنة (diff)
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // ✅ نقلنا جلب البيانات داخل useEffect لتفادي تحذير الـ deps
+  // تحميل التصنيفات + المنتج (عند التعديل)
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
-        // load categories
         const categoriesData = await ApiService.getCategories();
         if (!cancelled) setCategories(categoriesData);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
+      } catch {
         if (!cancelled) toast.error('Failed to load categories');
       }
 
-      // load product if editing
       if (isEdit && id) {
         try {
           if (!cancelled) setLoading(true);
           const product = await ApiService.getProduct(id);
+
+          const init = {
+            title: product.title || '',
+            slug: product.slug || '',
+            description: product.description || '',
+            priceInFils: product.priceInFils ?? null,
+            oldPriceInFils: product.oldPriceInFils ?? null,
+            stock: product.stock ?? 0,
+            category: product.category?._id || '',
+            images: product.images || [],
+            status: product.status || 'active',
+          };
+          initialRef.current = normalizeForCompare(init);
+
           if (!cancelled) {
             setFormData({
-              title: product.title || '',
-              slug: product.slug || '',
-              description: product.description || '',
-              priceInFils: product.priceInFils || '',
-              stock: product.stock || '',
-              category: product.category?._id || '',
-              images: product.images || [],
-              status: product.status || 'active'
+              ...init,
+              // نحول null إلى '' لعرضه في الحقل
+              priceInFils: init.priceInFils ?? '',
+              oldPriceInFils: init.oldPriceInFils ?? '',
+              stock: String(init.stock ?? ''),
             });
           }
         } catch (error) {
-          console.error('Error fetching product:', error);
           toast.error('Failed to load product');
           if (!cancelled) navigate('/admin/products');
         } finally {
@@ -65,33 +93,29 @@ const AdminProductForm = () => {
       }
     })();
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [id, isEdit, navigate]);
 
-  const generateSlug = (title) => {
-    return title
+  const generateSlug = (title) =>
+    title
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, ''); // ملاحظة: trim لا تقبل باراميتر؛ نقدر نحسنها لاحقاً لو حبيت
-  };
+      .replace(/^-+|-+$/g, '');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
 
-    // Auto-generate slug from title
     if (name === 'title') {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        slug: generateSlug(value)
+        slug: generateSlug(value),
       }));
     }
   };
@@ -100,70 +124,175 @@ const AdminProductForm = () => {
     const newImage = {
       url: imageData.url,
       publicId: imageData.publicId,
-      isPrimary: imageData.isPrimary || formData.images.length === 0
+      isPrimary: imageData.isPrimary || formData.images.length === 0,
     };
-
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, newImage]
-    }));
+    setFormData((prev) => ({ ...prev, images: [...prev.images, newImage] }));
   };
 
   const handleImageRemoved = (index, setPrimary = false) => {
     if (setPrimary) {
-      // Set as primary image
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        images: prev.images.map((img, i) => ({
-          ...img,
-          isPrimary: i === index
-        }))
+        images: prev.images.map((img, i) => ({ ...img, isPrimary: i === index })),
       }));
     } else {
-      // Remove image
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        images: prev.images.filter((_, i) => i !== index)
+        images: prev.images.filter((_, i) => i !== index),
       }));
     }
+  };
+
+  const buildDiffPayload = () => {
+    if (!isEdit || !initialRef.current) {
+      // إنشاء جديد: نعيد بيانات كاملة بعد تحويل الأرقام
+      return {
+        title: formData.title.trim(),
+        slug: formData.slug.trim(),
+        description: formData.description,
+        priceInFils: toIntOrNull(formData.priceInFils),
+        oldPriceInFils: toIntOrNull(formData.oldPriceInFils),
+        stock: toIntOrNull(formData.stock) ?? 0,
+        category: formData.category || undefined,
+        images: formData.images,
+        status: formData.status,
+      };
+    }
+
+    const currentNorm = normalizeForCompare({
+      ...formData,
+      priceInFils: toIntOrNull(formData.priceInFils),
+      oldPriceInFils: toIntOrNull(formData.oldPriceInFils),
+      stock: toIntOrNull(formData.stock),
+    });
+
+    const initial = initialRef.current;
+    const payload = {};
+
+    // نقارن حقلاً حقلاً
+    const fields = [
+      'title',
+      'slug',
+      'description',
+      'priceInFils',
+      'oldPriceInFils',
+      'stock',
+      'category',
+      'status',
+    ];
+    fields.forEach((f) => {
+      if (currentNorm[f] !== initial[f]) {
+        payload[f] = currentNorm[f];
+      }
+    });
+
+    // الصور: نقارن ببساطة بالطول/المحتوى (مقارنة عميقة بسيطة)
+    const imagesChanged =
+      JSON.stringify(formData.images) !== JSON.stringify(initial.images || []);
+    if (imagesChanged) payload.images = formData.images;
+
+    // مسح السعر القديم: نرسل null صراحة
+    if (
+      initial.oldPriceInFils !== null &&
+      (formData.oldPriceInFils === '' || currentNorm.oldPriceInFils === null)
+    ) {
+      payload.oldPriceInFils = null;
+    }
+
+    return payload;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.title.trim()) {
+    // تحقق أساسي
+    if (!String(formData.title).trim()) {
       toast.error('Product title is required');
-      return;
-    }
-
-    if (!formData.priceInFils || formData.priceInFils <= 0) {
-      toast.error('Valid price is required');
       return;
     }
 
     try {
       setLoading(true);
 
-      const productData = {
-        ...formData,
-        priceInFils: parseInt(formData.priceInFils, 10),
-        stock: parseInt(formData.stock, 10) || 0
-      };
+      if (!isEdit) {
+        // CREATE: price مطلوب
+        const priceInt = toIntOrNull(formData.priceInFils);
+        if (!Number.isInteger(priceInt) || priceInt <= 0) {
+          toast.error('Valid price (in fils) is required');
+          setLoading(false);
+          return;
+        }
+        const oldInt = toIntOrNull(formData.oldPriceInFils);
+        if (oldInt !== null) {
+          if (oldInt < 0) {
+            toast.error('Old price must be a non-negative integer (in fils)');
+            setLoading(false);
+            return;
+          }
+          if (oldInt <= priceInt) {
+            toast.error('Old price must be greater than current price');
+            setLoading(false);
+            return;
+          }
+        }
 
-      if (isEdit) {
-        await ApiService.request(`/products/${id}`, {
-          method: 'PATCH',
-          body: JSON.stringify(productData)
-        });
-        toast.success('Product updated successfully');
-      } else {
-        await ApiService.request('/products', {
-          method: 'POST',
-          body: JSON.stringify(productData)
-        });
+        const payload = buildDiffPayload();
+        await ApiService.request('/products', { method: 'POST', body: payload });
         toast.success('Product created successfully');
+        navigate('/admin/products');
+        return;
       }
 
+      // EDIT: نبني diff فقط
+      const payload = buildDiffPayload();
+
+      // لا شيء تغيّر؟
+      if (Object.keys(payload).length === 0) {
+        toast('No changes to save');
+        setLoading(false);
+        return;
+      }
+
+      // فاليديشن ذكي في وضع Edit
+      const newPrice =
+        payload.priceInFils != null ? payload.priceInFils : initialRef.current.priceInFils;
+      const newOld = payload.hasOwnProperty('oldPriceInFils')
+        ? payload.oldPriceInFils // قد يكون null لمسح الخصم
+        : initialRef.current.oldPriceInFils;
+
+      if (payload.priceInFils != null) {
+        if (!Number.isInteger(payload.priceInFils) || payload.priceInFils <= 0) {
+          toast.error('Valid price (in fils) is required');
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (payload.hasOwnProperty('oldPriceInFils')) {
+        if (payload.oldPriceInFils !== null) {
+          if (!Number.isInteger(payload.oldPriceInFils) || payload.oldPriceInFils < 0) {
+            toast.error('Old price must be a non-negative integer (in fils)');
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      // علاقة old > price إذا كان هناك Old موجود (جديد أو قديم)
+      if (newOld !== null && newOld !== undefined) {
+        if (!(newOld > newPrice)) {
+          toast.error('Old price must be greater than current price');
+          setLoading(false);
+          return;
+        }
+      }
+
+      await ApiService.request(`/products/${id}`, {
+        method: 'PATCH',
+        body: payload,
+      });
+
+      toast.success('Product updated successfully');
       navigate('/admin/products');
     } catch (error) {
       console.error('Error saving product:', error);
@@ -184,6 +313,28 @@ const AdminProductForm = () => {
       </AdminLayout>
     );
   }
+
+  // معاينات KWD
+  const priceKwdPreview =
+    formData.priceInFils !== '' && !Number.isNaN(Number(formData.priceInFils))
+      ? `KWD ${(Number(formData.priceInFils) / 1000).toFixed(3)}`
+      : '';
+
+  const oldPriceKwdPreview =
+    formData.oldPriceInFils !== '' && !Number.isNaN(Number(formData.oldPriceInFils))
+      ? `KWD ${(Number(formData.oldPriceInFils) / 1000).toFixed(3)}`
+      : '';
+
+  const showDiscountPreview =
+    priceKwdPreview &&
+    oldPriceKwdPreview &&
+    Number(formData.oldPriceInFils) > Number(formData.priceInFils);
+
+  const discountPercent = showDiscountPreview
+    ? Math.round(
+        (1 - Number(formData.priceInFils) / Number(formData.oldPriceInFils)) * 100
+      )
+    : 0;
 
   return (
     <AdminLayout>
@@ -257,12 +408,46 @@ const AdminProductForm = () => {
                       value={formData.priceInFils}
                       onChange={handleInputChange}
                       min="0"
-                      required
+                      required={!isEdit} // في التعديل ليس مطلوبًا
                     />
-                    <div className="form-text">
-                      {formData.priceInFils && `KWD ${(formData.priceInFils / 1000).toFixed(3)}`}
-                    </div>
+                    <div className="form-text">{priceKwdPreview}</div>
                   </div>
+
+                  <div className="col-md-4 mb-3">
+                    <label htmlFor="oldPriceInFils" className="form-label">
+                      Old Price (in Fils) <span className="text-muted">(optional)</span>
+                    </label>
+                    <div className="input-group">
+                      <input
+                        type="number"
+                        className="form-control"
+                        id="oldPriceInFils"
+                        name="oldPriceInFils"
+                        value={formData.oldPriceInFils}
+                        onChange={handleInputChange}
+                        min="0"
+                      />
+                      {formData.oldPriceInFils !== '' && (
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          title="Clear old price"
+                          onClick={() =>
+                            setFormData((prev) => ({ ...prev, oldPriceInFils: '' }))
+                          }
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <div className="form-text">{oldPriceKwdPreview}</div>
+                    {showDiscountPreview && (
+                      <div className="small mt-1">
+                        Discount: <strong>{discountPercent}%</strong>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="col-md-4 mb-3">
                     <label htmlFor="stock" className="form-label">Stock Quantity</label>
                     <input
@@ -275,7 +460,10 @@ const AdminProductForm = () => {
                       min="0"
                     />
                   </div>
-                  <div className="col-md-4 mb-3">
+                </div>
+
+                <div className="row">
+                  <div className="col-md-6 mb-3">
                     <label htmlFor="category" className="form-label">Category</label>
                     <select
                       className="form-select"
@@ -292,28 +480,26 @@ const AdminProductForm = () => {
                       ))}
                     </select>
                   </div>
-                </div>
 
-                <div className="mb-3">
-                  <label htmlFor="status" className="form-label">Status</label>
-                  <select
-                    className="form-select"
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="status" className="form-label">Status</label>
+                    <select
+                      className="form-select"
+                      id="status"
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                    >
+                      {/* Model values: draft | active | archived */}
+                      <option value="active">Active</option>
+                      <option value="draft">Draft</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="d-flex gap-2">
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={loading}
-                  >
+                  <button type="submit" className="btn btn-primary" disabled={loading}>
                     {loading ? (
                       <>
                         <span className="spinner-border spinner-border-sm me-2" role="status"></span>

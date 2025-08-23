@@ -21,7 +21,7 @@ const Products = () => {
 
   // بحث + ترتيب
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState(""); // ✅ للـ debounce
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortBy, setSortBy] = useState("none"); // none | priceAsc | priceDesc | ratingDesc | titleAsc
   const [selectedCategory, setSelectedCategory] = useState("");
 
@@ -41,7 +41,7 @@ const Products = () => {
     const cartProduct = {
       id: product._id || product.id,
       title: product.title,
-      price: product.price, // Already converted from fils
+      price: product.price, // KWD
       image: product.image,
       category: product.category,
       rating: product.rating,
@@ -50,13 +50,13 @@ const Products = () => {
     toast.success(t("productCard.added_to_cart", "Added to cart"));
   };
 
-  // ✅ Debounce للبحث: حدّث debouncedSearch بعد 300ms من توقف الكتابة
+  // Debounce للبحث
   useEffect(() => {
     const tmr = setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => clearTimeout(tmr);
   }, [search]);
 
-  // Load categories (مرة واحدة)
+  // Load categories
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -72,34 +72,46 @@ const Products = () => {
     };
   }, []);
 
-  // Load products (عند تغيّر الفلاتر/الترقيم)
+  // Load products
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         setLoading(true);
         const params = { page, limit: pageSize };
-        if (debouncedSearch) params.q = debouncedSearch; // ✅ استخدم المؤجل
-        if (selectedCategory) params.category = selectedCategory; // slug أو _id — الباك يدعم الاثنين
+        if (debouncedSearch) params.q = debouncedSearch;
+        if (selectedCategory) params.category = selectedCategory;
         if (sortBy !== "none") params.sort = sortBy;
 
         const response = await ApiService.getProducts(params);
         const items = Array.isArray(response) ? response : response.items || [];
 
         if (!cancelled) {
-          // Transform backend data to frontend format
-          const transformedProducts = items.map((product) => ({
-            id: product._id,
-            title: product.title,
-            price: product.priceInFils / 1000, // Convert fils to KWD
-            image:
-              product.image ||
-              product.images?.find((img) => img.isPrimary)?.url ||
-              product.images?.[0]?.url,
-            category: product.category?.name,
-            rating: product.rating,
-            description: product.description || "",
-          }));
+          const transformedProducts = items.map((p) => {
+            const price = p.priceInFils / 1000;
+            const oldPrice = p.oldPriceInFils ? p.oldPriceInFils / 1000 : null;
+            const discountPercent =
+              typeof p.discountPercent === "number"
+                ? p.discountPercent
+                : oldPrice && oldPrice > price
+                ? Math.round((1 - price / oldPrice) * 100)
+                : 0;
+
+            return {
+              id: p._id,
+              title: p.title,
+              price,
+              oldPrice,
+              discountPercent,
+              image:
+                p.image ||
+                p.images?.find((img) => img.isPrimary)?.url ||
+                p.images?.[0]?.url,
+              category: p.category?.name,
+              rating: p.rating,
+              description: p.description || "",
+            };
+          });
 
           setData(transformedProducts);
           setTotalPages(response.totalPages ?? 1);
@@ -120,14 +132,13 @@ const Products = () => {
     return () => {
       cancelled = true;
     };
-  }, [page, pageSize, debouncedSearch, selectedCategory, sortBy]); // ✅ يعتمد على debouncedSearch
+  }, [page, pageSize, debouncedSearch, selectedCategory, sortBy]);
 
   const filterProduct = (categorySlugOrId) => {
     setSelectedCategory(categorySlugOrId);
     setPage(1);
   };
 
-  // Reset page when search/sort/pageSize changes (استخدم المؤجل)
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, sortBy, pageSize]);
@@ -174,7 +185,7 @@ const Products = () => {
             className={`btn btn-sm m-2 ${
               selectedCategory === category.slug ? "btn-dark" : "btn-outline-dark"
             }`}
-            onClick={() => filterProduct(category.slug)} // slug مدعوم في الباك
+            onClick={() => filterProduct(category.slug)}
             type="button"
             disabled={loading}
           >
@@ -225,7 +236,7 @@ const Products = () => {
                 from,
                 to,
                 total,
-                defaultValue: "Showing {{from}}–{{to}} of {{total}}"
+                defaultValue: "Showing {{from}}–{{to}} of {{total}}",
               })
             : loading
             ? t("ui.loading", "Loading...")
@@ -248,8 +259,9 @@ const Products = () => {
             return (
               <div id={product.id} key={product.id} className="col-md-4 col-sm-6 col-12 mb-4">
                 <div className="card text-center h-100 d-flex">
+                  {/* صورة + شارة الخصم */}
                   <div
-                    className="p-3"
+                    className="p-3 position-relative"
                     style={{
                       height: 300,
                       display: "flex",
@@ -257,6 +269,11 @@ const Products = () => {
                       justifyContent: "center",
                     }}
                   >
+                    {product.discountPercent > 0 && (
+                      <span className="badge bg-danger position-absolute top-0 start-0 m-2">
+                        -{product.discountPercent}%
+                      </span>
+                    )}
                     <img
                       className="img-fluid"
                       src={product.image || "/placeholder-image.jpg"}
@@ -277,9 +294,21 @@ const Products = () => {
                     </p>
 
                     <div className="mt-auto">
-                      <div className="lead mb-2">{formatPrice(product.price)}</div>
+                      {/* السعر القديم + الجديد */}
+                      <div className="mb-2">
+                        {product.oldPrice ? (
+                          <>
+                            <small className="text-muted text-decoration-line-through me-2">
+                              {formatPrice(product.oldPrice)}
+                            </small>
+                            <span className="lead">{formatPrice(product.price)}</span>
+                          </>
+                        ) : (
+                          <span className="lead">{formatPrice(product.price)}</span>
+                        )}
+                      </div>
 
-                      {/* الأزرار: التفاصيل / إضافة للسلة / المفضلة */}
+                      {/* الأزرار */}
                       <div className="d-flex justify-content-center gap-2">
                         <Link to={`/product/${product.id}`} className="btn btn-outline-dark btn-sm">
                           {t("product.details", "Details")}

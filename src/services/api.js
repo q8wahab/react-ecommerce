@@ -20,7 +20,7 @@ async function httpRequest(path, { method = 'GET', body, headers = {}, params } 
   const m = (method || 'GET').toUpperCase();
   const isGet = m === 'GET';
 
-  // منع الـ 304 والكاش
+  // منع الكاش
   const url = buildUrl(path, { ...(params || {}), _ts: Date.now() });
 
   const res = await fetch(url, {
@@ -53,14 +53,28 @@ async function httpRequest(path, { method = 'GET', body, headers = {}, params } 
 const ApiService = {
   request: httpRequest,
 
-  // Auth
+  // ===== Auth =====
+  async login({ email, password }) {
+    const data = await httpRequest('/auth/login', {
+      method: 'POST',
+      body: { email, password },
+    });
+    // خزن التوكن لو السيرفر يرجعه بالـ body
+    const token = data?.token || data?.accessToken;
+    if (token) localStorage.setItem('accessToken', token);
+    return data; // قد يحتوي user أو أي بيانات إضافية
+  },
+
   async logout() {
-    await httpRequest('/auth/logout', { method: 'POST' });
-    localStorage.removeItem('accessToken');
+    try {
+      await httpRequest('/auth/logout', { method: 'POST' });
+    } finally {
+      localStorage.removeItem('accessToken');
+    }
     return { success: true };
   },
 
-  // Catalog
+  // ===== Catalog =====
   async getProducts(params) {
     const res = await httpRequest('/products', { params });
     if (Array.isArray(res)) {
@@ -71,17 +85,11 @@ const ApiService = {
   async getProduct(idOrSlug) { return httpRequest(`/products/${idOrSlug}`); },
   async getCategories() { return httpRequest('/categories'); },
 
-  // Orders
+  // ===== Orders =====
   async createOrder(payload) {
-    // payload example:
-    // {
-    //   customer: { name, phone, email? },
-    //   shippingAddress: { area, block, street, avenue?, houseNo, notes? },
-    //   items: [{ product: '<id>', qty }]
-    // }
     return httpRequest('/orders', { method: 'POST', body: payload });
   },
-  async getOrder(id) { // ملاحظة: هذا الراوت محمي بـ requireAuth في الباك-إند
+  async getOrder(id) {
     return httpRequest(`/orders/${id}`);
   },
 };

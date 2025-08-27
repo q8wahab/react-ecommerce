@@ -1,12 +1,11 @@
 // src/services/api.js
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001/api').replace(/\/$/, '');
 
 function buildUrl(path, params) {
-  const url = new URL(
-    path.startsWith('http')
-      ? path
-      : `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`
-  );
+  const base = path.startsWith('http')
+    ? path
+    : `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+  const url = new URL(base, window.location.origin);
   if (params && typeof params === 'object') {
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
@@ -15,24 +14,66 @@ function buildUrl(path, params) {
   return url.toString();
 }
 
-async function httpRequest(path, { method = 'GET', body, headers = {}, params } = {}) {
+// --- JWT helpers ---
+function parseJwt(token) {
+  try {
+    const [, payload] = token.split('.');
+    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+  } catch { return null; }
+}
+
+let refreshTimerId = null;
+function scheduleRefresh(token) {
+  clearTimeout(refreshTimerId);
+  const payload = parseJwt(token);
+  if (!payload?.exp) return;
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const ttl = payload.exp - nowSec;               // seconds till expiry
+  const refreshAt = Math.max(5, Math.floor(ttl * 0.8)); // 80% من المدة
+
+  refreshTimerId = setTimeout(() => {
+    ApiService.refresh().catch(() => {
+      // إذا فشل الريفريش نسوّي لوق أوت نظيف
+      ApiService.logout().finally(() => (window.location.href = '/login'));
+    });
+  }, refreshAt * 1000);
+}
+
+async function httpRequest(path, { method = 'GET', body, headers = {}, params, _retry } = {}) {
   const token = localStorage.getItem('accessToken');
   const m = (method || 'GET').toUpperCase();
   const isGet = m === 'GET';
-
   const url = buildUrl(path, { ...(params || {}), _ts: Date.now() });
 
-  const res = await fetch(url, {
-    method: m,
-    credentials: 'include',
-    cache: 'no-store',
-    headers: {
-      ...(isGet ? {} : { 'Content-Type': 'application/json' }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers
-    },
-    body: !isGet && body ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined
-  });
+  let res;
+  try {
+    res = await fetch(url, {
+      method: m,
+      credentials: 'same-origin',        // لا ترسل كوكيز بين الدومينات
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        ...(isGet ? {} : { 'Content-Type': 'application/json' }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+      body: !isGet && body ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
+    });
+  } catch (e) {
+    console.error('HTTP request failed (network)', { url, message: e?.message });
+    throw new Error('Network error — check API URL / CORS / server status');
+  }
+
+  // محاولة ريفريش لمرة وحدة لو 401
+  if (res.status === 401 && !_retry) {
+    try {
+      await ApiService.refresh(); // يحاول يحدّث التوكن
+      return httpRequest(path, { method, body, headers, params, _retry: true });
+    } catch {
+      // فشل الريفريش → نكمل خطأ 401 عشان الصفحة تتعامل (تحويل للّوقين مثلاً)
+    }
+  }
 
   const contentType = res.headers.get('content-type') || '';
   let data = null;
@@ -43,32 +84,29 @@ async function httpRequest(path, { method = 'GET', body, headers = {}, params } 
   }
 
   if (!res.ok) {
-    const message = (data && data.error) || (data && data.message) || res.statusText || 'Request failed';
-    throw new Error(message);
+    const message = (data && (data.error || data.message)) || res.statusText || 'Request failed';
+    const err = new Error(`${res.status} ${message}`);
+    console.error('HTTP error', { url, status: res.status, message, data });
+    throw err;
   }
   return data;
 }
 
-// خاص للتنزيلات (CSV)
+// للتنزيلات
 async function downloadFile(path, { params, filename }) {
-  const token = localStorage.getItem('accessToken');
   const url = buildUrl(path, { ...(params || {}), _ts: Date.now() });
-
   const res = await fetch(url, {
     method: 'GET',
-    credentials: 'include',
+    credentials: 'same-origin',
     cache: 'no-store',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    }
+    headers: { Accept: 'text/csv,application/octet-stream' },
   });
-
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     const message = text || res.statusText || 'Download failed';
+    console.error('Download error', { url, status: res.status, message });
     throw new Error(message);
   }
-
   const blob = await res.blob();
   const dlName =
     filename ||
@@ -90,74 +128,82 @@ const ApiService = {
 
   // ===== Auth =====
   async login({ email, password }) {
-    const data = await httpRequest('/auth/login', {
-      method: 'POST',
-      body: { email, password },
-    });
+    const data = await httpRequest('/auth/login', { method: 'POST', body: { email, password } });
     const token = data?.token || data?.accessToken;
-    if (token) localStorage.setItem('accessToken', token);
+    if (token) {
+      localStorage.setItem('accessToken', token);
+      scheduleRefresh(token);
+    }
     return data;
+  },
+
+  async refresh() {
+    // **يلزم** يكون عندك مسار باك-إند يرجّع accessToken جديد
+    // ويفضّل أنه يعتمد refreshToken محفوظ ككوكي HttpOnly على نفس الدومين
+    const data = await fetch(buildUrl('/auth/refresh', { _ts: Date.now() }), {
+      method: 'POST',
+      credentials: 'include',        // هنا نرسل الكوكي (لو عندك refreshToken ككوكي)
+      headers: { Accept: 'application/json' },
+    }).then(async (r) => {
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j?.message || 'Refresh failed');
+      return j;
+    });
+
+    const token = data?.token || data?.accessToken;
+    if (!token) throw new Error('No token from refresh');
+    localStorage.setItem('accessToken', token);
+    scheduleRefresh(token);
+    return { ok: true };
   },
 
   async logout() {
     try {
       await httpRequest('/auth/logout', { method: 'POST' });
-    } finally {
-      localStorage.removeItem('accessToken');
-    }
+    } catch {} // تجاهل أي خطأ من السيرفر
+    localStorage.removeItem('accessToken');
+    clearTimeout(refreshTimerId);
     return { success: true };
   },
 
   // ===== Catalog =====
   async getProducts(params) {
     const res = await httpRequest('/products', { params });
-    if (Array.isArray(res)) {
-      return { items: res, total: res.length, totalPages: 1, page: 1 };
-    }
+    if (Array.isArray(res)) return { items: res, total: res.length, totalPages: 1, page: 1 };
     return res;
   },
   async getProduct(idOrSlug) { return httpRequest(`/products/${idOrSlug}`); },
+  async getProductById(idOrSlug) { return httpRequest(`/products/${idOrSlug}`); },
   async getCategories() { return httpRequest('/categories'); },
 
   // ===== Orders =====
   async createOrder(payload) {
     return httpRequest('/orders', { method: 'POST', body: payload });
   },
-  async getOrder(id) {
-    return httpRequest(`/orders/${id}`);
-  },
+  async getOrder(id) { return httpRequest(`/orders/${id}`); },
 
-  // ===== CSV: Export / Import =====
+  // ===== CSV =====
   async exportProductsCSV(params) {
     return downloadFile('/products/export.csv', { params, filename: 'products.csv' });
   },
-
   async importProductsCSV(file, { upsertBy = 'slug', dryRun = false } = {}) {
-    const token = localStorage.getItem('accessToken');
     const url = buildUrl('/products/import', { _ts: Date.now() });
-
     const fd = new FormData();
     fd.append('file', file);
     fd.append('upsertBy', upsertBy);
     fd.append('dryRun', String(dryRun));
 
-    const res = await fetch(url, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        // لا تضع Content-Type — المتصفح سيحدد boundary
-      },
-      body: fd,
-    });
-
+    const res = await fetch(url, { method: 'POST', credentials: 'same-origin', body: fd });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const message = data?.error || data?.message || 'Import failed';
-      throw new Error(message);
-    }
+    if (!res.ok) throw new Error(data?.error || data?.message || 'Import failed');
     return data;
   },
 };
+
+// جولة أولى: لو في توكن محفوظ، جدول ريفريش
+(() => {
+  const token = localStorage.getItem('accessToken');
+  if (token) scheduleRefresh(token);
+})();
 
 export default ApiService;

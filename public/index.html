@@ -1,58 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
 
-<head>
-  <meta charset="utf-8" />
-  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Favicon / App -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b0f17" />
+    <link rel="canonical" href="%PUBLIC_URL%/" />
 
-  <meta name="theme-color" content="#000000" />
-  <meta name="author" content="Sahib Singh">
-  <meta name="keywords" content="Sahib Singh, reactjs, ecommerce, react ecommerce website, ecommerce website, sahibsingh.vercel.app">
-  <!-- Primary Meta Tags -->
-  <title>Ecommerce Website</title>
-  <meta name="title" content="Ecommerce Website">
-  <meta name="description" content="A Ecommerce Website made with React.js Framework.">
+    <!-- SEO -->
+    <meta name="author" content="24ozkw" />
+    <meta
+      name="keywords"
+      content="24ozkw, Coffee accessories, Nespresso, Dolce Gusto, capsule organizer, coffee drawer, Kuwait, إكسسوارات القهوة, منظمات كبسولات, نسبريسو, دولشي قوستو"
+    />
+    <meta
+      name="description"
+      content="24ozkw — إكسسوارات كبسولات القهوة لنسبريسو ودولشي قوستو: منظمات درج وستاند وتخزين ذكي لزاوية القهوة. 24ozkw — Coffee capsule accessories for Nespresso® & Dolce Gusto®."
+    />
 
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://reactjs-ecommerce-app.vercel.app/">
-  <meta property="og:title" content="Ecommerce Website">
-  <meta property="og:description" content="A Ecommerce Website made with React.js Framework.">
-  <meta property="og:image"
-    content="https://i.ibb.co/fQ293tm/image.png">
+    <!-- Primary Meta Tags -->
+    <title>24ozkw — Coffee Capsule Accessories</title>
+    <meta name="title" content="24ozkw — Coffee Capsule Accessories" />
 
-  <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="https://reactjs-ecommerce-app.vercel.app/">
-  <meta property="twitter:title" content="Ecommerce Website">
-  <meta property="twitter:description" content="A Ecommerce Website made with React.js Framework.">
-  <meta property="twitter:image"
-    content="https://i.ibb.co/fQ293tm/image.png">
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="24ozkw" />
+    <meta property="og:locale" content="ar_KW" />
+    <meta property="og:url" content="%PUBLIC_URL%/" />
+    <meta property="og:title" content="24ozkw — Coffee Capsule Accessories" />
+    <meta
+      property="og:description"
+      content="إكسسوارات كبسولات القهوة لنسبريسو ودولشي قوستو — تنظيم أنيق ومساحة أقل وروتين قهوة أسهل."
+    />
+    <meta
+      property="og:image"
+      content="%PUBLIC_URL%/assets/og-24ozkw.jpg"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
 
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@24ozkw" />
+    <meta name="twitter:title" content="24ozkw — Coffee Capsule Accessories" />
+    <meta
+      name="twitter:description"
+      content="Coffee capsule accessories for Nespresso® & Dolce Gusto® — organized, space-saving, and stylish."
+    />
+    <meta
+      name="twitter:image"
+      content="%PUBLIC_URL%/assets/og-24ozkw.jpg"
+    />
 
+    <!-- Fonts / Icons (Font Awesome 6) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      integrity="sha512-SzR1q0B3b7YzD3l9YdG8pO7dQd5M8q9i6m2i6x3C0xOqk9gY0V9x9q0t3O1tQ6V7wYl2m2l7M0J6No9I7F8+Wg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
-    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"
-    integrity="sha512-xh6O/CkQoPOWDdYTDqeRdPCVd1SpvCA9XXcUnZS2FmJNp1coAFzvtCN9BmamE+4aHK8yyUHUSCcJHgXloTyT2A=="
-    crossorigin="anonymous" referrerpolicy="no-referrer" />
-</head>
+    <!-- Bootstrap 5 (CSS only; JS bundle below). 
+         ملاحظة: استخدم نسخة 5 لأن الموقع يستخدم offcanvas/collapse من v5 -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+  </head>
 
-<body>
-  <noscript>You need to enable JavaScript to run this app.</noscript>
-  <div id="root"></div>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
 
-
-  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-    integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-    crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
-    integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-    crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
-    integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-    crossorigin="anonymous"></script>
-</body>
-
+    <!-- Bootstrap 5 JS Bundle (includes Popper) -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+  </body>
 </html>

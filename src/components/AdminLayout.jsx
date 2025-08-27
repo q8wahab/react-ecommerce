@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../store/auth/slice';
@@ -11,16 +11,37 @@ const AdminLayout = ({ children }) => {
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector(state => state.auth);
 
+  // ▼ إضافة بسيطة لتشغيل القائمة بدون Bootstrap JS
+  const [menuOpen, setMenuOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const toggleMenu = () => setMenuOpen(v => !v);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (!dropdownRef.current?.contains(e.target)) setMenuOpen(false);
+    };
+    const onEsc = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('click', onDocClick);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('click', onDocClick);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, []);
+  // ▲
+
   const handleLogout = async () => {
     try {
       await ApiService.logout();
       dispatch(logout());
       toast.success('Logged out successfully');
-      navigate('/login');
+      navigate('/login', { replace: true });
     } catch (error) {
       console.error('Logout error:', error);
       dispatch(logout());
-      navigate('/login');
+      navigate('/login', { replace: true });
     }
   };
 
@@ -60,6 +81,9 @@ const AdminLayout = ({ children }) => {
             type="button"
             data-bs-toggle="collapse"
             data-bs-target="#adminNavbar"
+            aria-controls="adminNavbar"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
           >
             <span className="navbar-toggler-icon"></span>
           </button>
@@ -105,28 +129,41 @@ const AdminLayout = ({ children }) => {
             </ul>
 
             <ul className="navbar-nav">
-              <li className="nav-item dropdown">
-                {/* Replaced <a href="#"> with a button for a11y */}
+              <li className="nav-item dropdown" ref={dropdownRef}>
+                {/* زر القائمة */}
                 <button
                   id="adminMenu"
                   type="button"
                   className="nav-link dropdown-toggle btn btn-link p-0"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
+                  // data-bs-toggle="dropdown"  ← مو مطلوب بعد ما سوّينا التحكم يدوي
+                  aria-haspopup="true"
+                  aria-expanded={menuOpen ? 'true' : 'false'}
+                  title="Admin menu"
+                  onClick={toggleMenu}
                 >
                   <i className="fa fa-user me-1"></i>
-                  {user?.name}
+                  {user?.name || 'admin user'}
                 </button>
-                <ul className="dropdown-menu" aria-labelledby="adminMenu">
+
+                {/* القائمة — نضيف show حسب الحالة */}
+                <ul
+                  className={`dropdown-menu dropdown-menu-end${menuOpen ? ' show' : ''}`}
+                  aria-labelledby="adminMenu"
+                  style={{ position: 'absolute' }}
+                >
                   <li>
-                    <Link className="dropdown-item" to="/">
+                    <Link className="dropdown-item" to="/" target="_blank" rel="noreferrer">
                       <i className="fa fa-home me-1"></i>
                       View Store
                     </Link>
                   </li>
                   <li><hr className="dropdown-divider" /></li>
                   <li>
-                    <button className="dropdown-item" onClick={handleLogout}>
+                    <button
+                      type="button"
+                      className="dropdown-item"
+                      onClick={handleLogout}
+                    >
                       <i className="fa fa-sign-out me-1"></i>
                       Logout
                     </button>
@@ -134,6 +171,7 @@ const AdminLayout = ({ children }) => {
                 </ul>
               </li>
             </ul>
+
           </div>
         </div>
       </nav>

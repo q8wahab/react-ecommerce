@@ -71,3 +71,68 @@ html, body { background: var(--bg); color: var(--fg); }
   .hero-subtext { font-size: 1.05rem; }
 }
 
+/* ===== Product description formatting ===== */
+.product-desc {
+  white-space: pre-line;       /* يحترم السطور الجديدة */
+  line-height: 1.8;
+  font-size: 1rem;
+  unicode-bidi: plaintext;     /* يضبط اتجاه الفقرات تلقائياً (AR/EN) */
+  max-width: 720px;            /* عرض مناسب للقراءة */
+}
+
+.product-desc--snippet {
+  white-space: pre-line;
+  line-height: 1.6;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;       /* اعرض 3 أسطر فقط */
+  -webkit-box-orient: vertical;
+}
+
+/* Markdown styling inside product description */
+.product-desc {
+  white-space: normal;       /* مع Markdown ما نحتاج pre-line */
+  line-height: 1.8;
+  font-size: 1rem;
+  unicode-bidi: plaintext;   /* يخلّي الفقرات تختار اتجاهها تلقائياً (AR/EN) */
+  max-width: 720px;
+}
+
+/* عناوين */
+.product-desc h1, .product-desc h2, .product-desc h3 {
+  margin: .75rem 0 .5rem;
+  font-weight: 600;
+}
+
+/* فقرات وفواصل */
+.product-desc p { margin: .5rem 0 .75rem; }
+.product-desc hr { border: 0; border-top: 1px solid var(--border); margin: 1rem 0; }
+
+/* قوائم */
+.product-desc ul, .product-desc ol {
+  margin: .25rem 0 .75rem;
+  padding-inline-start: 1.25rem;
+}
+.product-desc li { margin: .125rem 0; }
+
+/* اقتباس */
+.product-desc blockquote {
+  margin: .75rem 0;
+  padding-inline-start: .75rem;
+  border-inline-start: 3px solid var(--border);
+  color: var(--muted);
+}
+
+/* جداول (GFM) */
+.product-desc table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: .75rem 0 1rem;
+}
+.product-desc th, .product-desc td {
+  border: 1px solid var(--border);
+  padding: .5rem .6rem;
+}
+.product-desc thead th {
+  background: rgba(0,0,0,.04);
+}

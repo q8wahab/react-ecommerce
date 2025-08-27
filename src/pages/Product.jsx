@@ -17,15 +17,17 @@ const Product = () => {
   const [loading, setLoading] = useState(false);
   const [loading2, setLoading2] = useState(false);
 
+  // لمعرض الصور
+  const [activeIdx, setActiveIdx] = useState(0);
+
   const dispatch = useDispatch();
   const wishlist = useSelector((s) => s.wishlist || []);
 
-  // robust check (works even before full product loads)
   const isWishlisted = wishlist.some(
     (w) => String(w.id) === String(product?.id ?? id)
   );
 
-  const addProduct = (p) => dispatch(addCart(p));
+  const addProductToCart = (p) => dispatch(addCart(p));
   const onToggleWishlist = (p) => dispatch(toggleWishlist(p));
 
   useEffect(() => {
@@ -34,23 +36,27 @@ const Product = () => {
       setLoading2(true);
 
       try {
-        // Fetch single product using ApiService
         const data = await ApiService.getProduct(id);
 
-        // Transform backend data to frontend format
-        const price =
-          data.priceInFils != null ? data.priceInFils / 1000 : data.price;
-        const oldPrice =
-          data.oldPriceInFils != null ? data.oldPriceInFils / 1000 : data.oldPrice;
-        const discountPercent =
-          oldPrice && oldPrice > price ? Math.round((1 - price / oldPrice) * 100) : 0;
-
+        // جهّز بيانات المنتج
         const transformedProduct = {
           id: data._id,
           title: data.title,
-          price,
-          oldPrice,
-          discountPercent, // ✅ جديد
+          price:
+            data.priceInFils != null ? data.priceInFils / 1000 : data.price,
+          oldPrice:
+            data.oldPriceInFils != null
+              ? data.oldPriceInFils / 1000
+              : data.oldPrice,
+          // كل الصور (مع isPrimary إن وجدت)
+          images:
+            Array.isArray(data.images) && data.images.length
+              ? data.images.map((img) => ({
+                  url: img.url,
+                  isPrimary: !!img.isPrimary,
+                }))
+              : [],
+          // صورة احتياطية واحدة فقط (للتوافق مع كود قديم)
           image:
             data.images?.find((img) => img.isPrimary)?.url ||
             data.images?.[0]?.url ||
@@ -62,39 +68,41 @@ const Product = () => {
         };
 
         setProduct(transformedProduct);
+
+        // فعّل الصورة الأساسية إن وُجدت
+        if (transformedProduct.images?.length) {
+          const primaryIndex = transformedProduct.images.findIndex(
+            (x) => x.isPrimary
+          );
+          setActiveIdx(primaryIndex >= 0 ? primaryIndex : 0);
+        } else {
+          setActiveIdx(0);
+        }
+
         setLoading(false);
 
-        // Fetch similar products by category
+        // منتجات مشابهة
         if (data.category?.slug) {
           const response = await ApiService.getProducts({
             category: data.category.slug,
             limit: 4,
           });
 
-          // Transform similar products
           const transformedSimilarProducts = (response.items || response).map(
-            (p) => {
-              const sPrice = p.priceInFils != null ? p.priceInFils / 1000 : p.price;
-              const sOld =
-                p.oldPriceInFils != null ? p.oldPriceInFils / 1000 : p.oldPrice;
-              const sDiscount =
-                sOld && sOld > sPrice ? Math.round((1 - sPrice / sOld) * 100) : 0;
-
-              return {
-                id: p._id,
-                title: p.title,
-                price: sPrice,
-                oldPrice: sOld,
-                discountPercent: sDiscount, // ✅ جديد
-                image:
-                  p.image ||
-                  p.images?.find((img) => img.isPrimary)?.url ||
-                  p.images?.[0]?.url ||
-                  "/placeholder-image.jpg",
-                category: p.category?.name,
-                rating: p.rating,
-              };
-            }
+            (p) => ({
+              id: p._id,
+              title: p.title,
+              price: p.priceInFils != null ? p.priceInFils / 1000 : p.price,
+              oldPrice:
+                p.oldPriceInFils != null ? p.oldPriceInFils / 1000 : p.oldPrice,
+              image:
+                p.image ||
+                p.images?.find((img) => img.isPrimary)?.url ||
+                p.images?.[0]?.url ||
+                "/placeholder-image.jpg",
+              category: p.category?.name,
+              rating: p.rating,
+            })
           );
 
           setSimilarProducts(transformedSimilarProducts);
@@ -131,35 +139,79 @@ const Product = () => {
   );
 
   const ShowProduct = () => {
-    const showOld = product.oldPrice != null && product.oldPrice > product.price;
+    const gallery = product.images?.length
+      ? product.images
+      : [{ url: product.image, isPrimary: true }];
+
+    const mainUrl =
+      gallery[activeIdx]?.url || product.image || "/placeholder-image.jpg";
+
+    const showOld =
+      product.oldPrice != null && product.oldPrice > product.price;
 
     return (
       <div className="container my-5 py-2">
-        <div className="row">
-          <div className="col-md-6 col-sm-12 py-3">
-            <div className="position-relative d-inline-block">
-              {product.discountPercent > 0 && (
-                <span className="badge bg-danger position-absolute top-0 start-0 m-2">
-                  -{product.discountPercent}%
-                </span>
-              )}
+        <div className="row g-4">
+          {/* الصور */}
+          <div className="col-md-6 col-sm-12">
+            {/* الصورة الرئيسية */}
+            <div className="border rounded d-flex align-items-center justify-content-center p-3">
               <img
                 className="img-fluid"
-                src={product.image}
+                src={mainUrl}
                 alt={product.title}
-                width="400"
-                height="400"
-                onError={(e) => {
-                  e.target.src = "/placeholder-image.jpg";
-                }}
+                style={{ maxHeight: 420, objectFit: "contain" }}
+                onError={(e) => (e.currentTarget.src = "/placeholder-image.jpg")}
               />
             </div>
+
+            {/* الثمنبنيلات */}
+            {gallery.length > 1 && (
+              <div
+                className="d-flex flex-wrap gap-2 mt-3"
+                style={{ maxHeight: 120, overflowX: "auto" }}
+              >
+                {gallery.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`btn p-1 border ${
+                      idx === activeIdx ? "border-2 border-dark" : "border-1"
+                    }`}
+                    style={{
+                      width: 70,
+                      height: 70,
+                      borderRadius: 6,
+                      background: "white",
+                    }}
+                    onClick={() => setActiveIdx(idx)}
+                    title={`Image ${idx + 1}`}
+                  >
+                    <img
+                      src={img.url}
+                      alt={`Thumbnail ${idx + 1}`}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                      }}
+                      onError={(e) =>
+                        (e.currentTarget.src = "/placeholder-image.jpg")
+                      }
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="col-md-6 py-5">
+
+          {/* التفاصيل */}
+          <div className="col-md-6">
             <h4 className="text-uppercase text-muted">{product.category}</h4>
             <h1 className="display-5">{product.title}</h1>
             <p className="lead">
-              {product.rating && product.rating.rate} <i className="fa fa-star"></i>
+              {product.rating && product.rating.rate}{" "}
+              <i className="fa fa-star"></i>
             </p>
 
             {/* السعر الحالي + القديم */}
@@ -167,7 +219,8 @@ const Product = () => {
               <span className="display-6">{formatPrice(product.price)}</span>
               {showOld && (
                 <span
-                  className="text-muted ms-3 text-decoration-line-through"
+                  className="text-muted ms-3"
+                  style={{ textDecoration: "line-through" }}
                 >
                   {formatPrice(product.oldPrice)}
                 </span>
@@ -176,7 +229,9 @@ const Product = () => {
 
             <p className="lead">{product.description}</p>
             {product.stock > 0 ? (
-              <p className="text-success">In Stock ({product.stock} available)</p>
+              <p className="text-success">
+                In Stock ({product.stock} available)
+              </p>
             ) : (
               <p className="text-danger">Out of Stock</p>
             )}
@@ -184,7 +239,7 @@ const Product = () => {
             <div className="d-flex align-items-center flex-wrap gap-2">
               <button
                 className="btn btn-outline-dark"
-                onClick={() => addProduct(product)}
+                onClick={() => addProductToCart(product)}
                 type="button"
                 disabled={product.stock === 0}
               >
@@ -195,15 +250,20 @@ const Product = () => {
                 Go to Cart
               </Link>
 
-              {/* WISHLIST BUTTON (always rendered) */}
               <button
                 data-test="wishlist-btn"
-                className={`btn ${isWishlisted ? "btn-danger" : "btn-outline-danger"}`}
+                className={`btn ${
+                  isWishlisted ? "btn-danger" : "btn-outline-danger"
+                }`}
                 onClick={() => onToggleWishlist(product)}
                 type="button"
                 title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
               >
-                <i className={`fa ${isWishlisted ? "fa-heart" : "fa-heart-o"} me-1`} />
+                <i
+                  className={`fa ${
+                    isWishlisted ? "fa-heart" : "fa-heart-o"
+                  } me-1`}
+                />
                 {isWishlisted ? "Wishlisted" : "Wishlist"}
               </button>
             </div>
@@ -232,26 +292,20 @@ const Product = () => {
           const inWishlist = wishlist.some(
             (w) => String(w.id) === String(item.id)
           );
-          const showOld = item.oldPrice != null && item.oldPrice > item.price;
+          const showOld =
+            item.oldPrice != null && item.oldPrice > item.price;
 
           return (
             <div key={item.id} className="card mx-4 text-center" style={{ width: 260 }}>
-              <div className="position-relative">
-                {item.discountPercent > 0 && (
-                  <span className="badge bg-danger position-absolute top-0 start-0 m-2">
-                    -{item.discountPercent}%
-                  </span>
-                )}
-                <img
-                  className="card-img-top p-3"
-                  src={item.image}
-                  alt={item.title}
-                  height={300}
-                  width={300}
-                  style={{ objectFit: "contain" }}
-                  onError={(e) => (e.currentTarget.src = "/placeholder-image.jpg")}
-                />
-              </div>
+              <img
+                className="card-img-top p-3"
+                src={item.image}
+                alt={item.title}
+                height={300}
+                width={300}
+                style={{ objectFit: "contain" }}
+                onError={(e) => (e.currentTarget.src = "/placeholder-image.jpg")}
+              />
               <div className="card-body d-flex flex-column">
                 <h5 className="card-title mb-1">
                   {item.title.length > 15
@@ -259,12 +313,12 @@ const Product = () => {
                     : item.title}
                 </h5>
 
-                {/* السعر الحالي + القديم للمنتجات المشابهة */}
                 <div className="mb-2">
                   <span className="lead">{formatPrice(item.price)}</span>
                   {showOld && (
                     <span
-                      className="text-muted ms-2 text-decoration-line-through"
+                      className="text-muted ms-2"
+                      style={{ textDecoration: "line-through" }}
                     >
                       {formatPrice(item.oldPrice)}
                     </span>
@@ -275,7 +329,7 @@ const Product = () => {
                   <Link to={`/product/${item.id}`} className="btn btn-outline-dark btn-sm">
                     Details
                   </Link>
-                  <button className="btn btn-dark btn-sm" onClick={() => addProduct(item)}>
+                  <button className="btn btn-dark btn-sm" onClick={() => addProductToCart(item)}>
                     Add to Cart
                   </button>
                   <button

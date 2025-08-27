@@ -20,7 +20,6 @@ async function httpRequest(path, { method = 'GET', body, headers = {}, params } 
   const m = (method || 'GET').toUpperCase();
   const isGet = m === 'GET';
 
-  // منع الكاش
   const url = buildUrl(path, { ...(params || {}), _ts: Date.now() });
 
   const res = await fetch(url, {
@@ -50,6 +49,42 @@ async function httpRequest(path, { method = 'GET', body, headers = {}, params } 
   return data;
 }
 
+// خاص للتنزيلات (CSV)
+async function downloadFile(path, { params, filename }) {
+  const token = localStorage.getItem('accessToken');
+  const url = buildUrl(path, { ...(params || {}), _ts: Date.now() });
+
+  const res = await fetch(url, {
+    method: 'GET',
+    credentials: 'include',
+    cache: 'no-store',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    const message = text || res.statusText || 'Download failed';
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const dlName =
+    filename ||
+    res.headers.get('content-disposition')?.split('filename=')?.[1]?.replace(/"/g, '') ||
+    'download.csv';
+
+  const a = document.createElement('a');
+  const urlBlob = window.URL.createObjectURL(blob);
+  a.href = urlBlob;
+  a.download = dlName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(urlBlob);
+}
+
 const ApiService = {
   request: httpRequest,
 
@@ -59,10 +94,9 @@ const ApiService = {
       method: 'POST',
       body: { email, password },
     });
-    // خزن التوكن لو السيرفر يرجعه بالـ body
     const token = data?.token || data?.accessToken;
     if (token) localStorage.setItem('accessToken', token);
-    return data; // قد يحتوي user أو أي بيانات إضافية
+    return data;
   },
 
   async logout() {
@@ -91,6 +125,38 @@ const ApiService = {
   },
   async getOrder(id) {
     return httpRequest(`/orders/${id}`);
+  },
+
+  // ===== CSV: Export / Import =====
+  async exportProductsCSV(params) {
+    return downloadFile('/products/export.csv', { params, filename: 'products.csv' });
+  },
+
+  async importProductsCSV(file, { upsertBy = 'slug', dryRun = false } = {}) {
+    const token = localStorage.getItem('accessToken');
+    const url = buildUrl('/products/import', { _ts: Date.now() });
+
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upsertBy', upsertBy);
+    fd.append('dryRun', String(dryRun));
+
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // لا تضع Content-Type — المتصفح سيحدد boundary
+      },
+      body: fd,
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const message = data?.error || data?.message || 'Import failed';
+      throw new Error(message);
+    }
+    return data;
   },
 };
 

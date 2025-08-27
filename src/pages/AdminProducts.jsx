@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../components/AdminLayout';
 import ApiService from '../services/api';
@@ -14,7 +14,9 @@ const AdminProducts = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
-  // ✅ جلب المنتجات
+  // ملف CSV (input مخفي)
+  const fileInputRef = useRef(null);
+
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
@@ -38,7 +40,6 @@ const AdminProducts = () => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // ✅ جلب التصنيفات
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -64,7 +65,52 @@ const AdminProducts = () => {
     }
   };
 
-  // ✅ مساعد لتنسيق KWD
+  const handleExportCSV = async () => {
+    try {
+      const params = {};
+      if (search) params.q = search;
+      if (selectedCategory) params.category = selectedCategory;
+      await ApiService.exportProductsCSV(params);
+      toast.success('Export started');
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Export failed');
+    }
+  };
+
+  const triggerImport = () => fileInputRef.current?.click();
+
+  const onSelectCSV = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // reset for future selects
+    if (!file) return;
+
+    // اختيار "تجربة (Dry Run)" قبل الإدخال الفعلي؟
+    const doDryRun = window.confirm('Run a DRY RUN first? (Check & report without saving)');
+    try {
+      const report = await ApiService.importProductsCSV(file, { upsertBy: 'slug', dryRun: doDryRun });
+      const { total, inserted, updated, skipped, errors = [] } = report;
+      if (doDryRun) {
+        toast(`DRY RUN — total:${total}, would insert:${inserted}, update:${updated}, skip:${skipped}`);
+      } else {
+        toast.success(`Imported — inserted:${inserted}, updated:${updated}, skipped:${skipped}`);
+        fetchProducts();
+      }
+
+      if (errors.length) {
+        console.warn('CSV import errors:', errors);
+        alert(
+          'Some rows had issues:\n' +
+          errors.slice(0, 10).map(e => `Row ${e.row} (${e.slug || '—'}): ${e.error}`).join('\n') +
+          (errors.length > 10 ? `\n...and ${errors.length - 10} more` : '')
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Import failed');
+    }
+  };
+
   const formatKwd = (fils) =>
     typeof fils === 'number' ? `KWD ${(fils / 1000).toFixed(3)}` : '—';
 
@@ -72,12 +118,31 @@ const AdminProducts = () => {
     <AdminLayout>
       <div className="row">
         <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1 className="h3">Products Management</h1>
-            <Link to="/admin/products/new" className="btn btn-primary">
-              <i className="fa fa-plus me-2"></i>
-              Add New Product
-            </Link>
+          <div className="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
+            <h1 className="h3 m-0">Products Management</h1>
+            <div className="d-flex flex-wrap gap-2">
+              {/* أزرار CSV */}
+              <button className="btn btn-outline-secondary" onClick={handleExportCSV}>
+                <i className="fa fa-download me-2" />
+                Export CSV
+              </button>
+              <button className="btn btn-outline-secondary" onClick={triggerImport}>
+                <i className="fa fa-upload me-2" />
+                Import CSV
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="d-none"
+                onChange={onSelectCSV}
+              />
+
+              <Link to="/admin/products/new" className="btn btn-primary">
+                <i className="fa fa-plus me-2"></i>
+                Add New Product
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -160,7 +225,7 @@ const AdminProducts = () => {
                           <th>Image</th>
                           <th>Title</th>
                           <th>Category</th>
-                          <th>Price</th>{/* نحتفظ بنفس العمود ونوضح القديم داخله */}
+                          <th>Price</th>
                           <th>Stock</th>
                           <th>Status</th>
                           <th>Actions</th>
@@ -206,7 +271,6 @@ const AdminProducts = () => {
                               </td>
                               <td>{product.category?.name || 'N/A'}</td>
 
-                              {/* السعر الحالي + القديم + نسبة الخصم */}
                               <td style={{ minWidth: 160 }}>
                                 <div className="fw-bold">{formatKwd(price)}</div>
                                 {hasDiscount && (
@@ -268,7 +332,6 @@ const AdminProducts = () => {
                     </table>
                   </div>
 
-                  {/* Pagination */}
                   {totalPages > 1 && (
                     <nav className="mt-4">
                       <ul className="pagination justify-content-center">

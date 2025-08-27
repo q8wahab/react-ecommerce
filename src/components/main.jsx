@@ -4,20 +4,33 @@ const Home = () => {
   return (
     <>
       <div className="hero border-1 pb-3">
-        <div className="card bg-dark text-white border-0 mx-3">
+        <div className="card text-white border-0 mx-3 hero-card">
           <img
-            className="card-img img-fluid"
-            src="./assets/main.png.jpg"
-            alt="Card"
-            height={500}
+            className="card-img hero-img"
+            src={`${process.env.PUBLIC_URL}/assets/IMG_9646.jpg`} // أو "/assets/IMG_9646.jpg"
+            alt="Coffee accessories hero"
           />
           <div className="card-img-overlay d-flex align-items-center">
             <div className="container">
-              <h5 className="card-title fs-1 text fw-lighter">New Season Arrivals</h5>
-              <p className="card-text fs-5 d-none d-sm-block ">
-                This is a wider card with supporting text below as a natural
-                lead-in to additional content. This content is a little bit
-                longer.
+              {/* العنوان: AR ثم EN */}
+              <h1 className="display-5 fw-light mb-3 lh-sm hero-title">
+                <span className="d-block ar" dir="rtl">
+                  رتّب كبسولاتك.. وعيش المزاج — مساحة أقل، قهوة أكثر
+                </span>
+                <span className="d-block en">
+                  Organize your capsules, elevate your ritual — Start your day organized
+                </span>
+              </h1>
+
+              {/* الوصف: AR ثم EN */}
+              <p className="fs-5 mb-0 lh-base hero-subtext">
+                <span className="d-block ar mb-1" dir="rtl">
+                  إكسسوارات أنيقة لنسبريسو ودولشي قوستو بتنظيم موفّر للمساحة، عشان تبدأ يومك مُرتّب وتستمتع بأول رشفة.
+                </span>
+                <span className="d-block en">
+                  Elegant accessories for Nespresso® & Dolce Gusto® with space-saving storage,
+                  keeping every capsule in its place for a smoother morning.
+                </span>
               </p>
             </div>
           </div>

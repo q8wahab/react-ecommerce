@@ -20,3 +20,54 @@ html, body { background: var(--bg); color: var(--fg); }
 .text-muted, .text-secondary { color: var(--muted) !important; }
 .btn-dark, .btn-outline-dark:hover { background: var(--primary); border-color: var(--primary); }
 .offcanvas { transition: none !important; }
+
+/* حجم مرِن يناسب الموبايل والديسكتوب + قص ذكي */
+.hero-card { background:#000; }
+
+.hero-img {
+  width: 100%;
+  height: clamp(240px, 55vh, 720px); /* من 240px إلى 720px حسب الشاشة */
+  object-fit: cover;                 /* يملأ المساحة بدون تشوّه */
+  object-position: 50% 40%;          /* حرّك نقطة التركيز حسب محتوى الصورة */
+  display: block;
+}
+
+/* طبقة تدرّج لتوضيح النص فوق الصورة */
+.hero .card-img-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.hero .card-img-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,.55) 0%,
+    rgba(0,0,0,.25) 35%,
+    rgba(0,0,0,.65) 100%
+  );
+  z-index: 0;
+}
+
+.hero .card-img-overlay > * { position: relative; z-index: 1; }
+
+/* تحسينات مقاسات العناوين بالموبايل */
+@media (max-width: 576px) {
+  .hero-img { height: 48vh; }                 /* أقصر شوي على الشاشات الصغيرة */
+  .hero .card-title { font-size: 1.75rem; }   /* صغّر العنوان بالموبايل */
+}
+@media (min-width: 1400px) {
+  .hero-img { height: 70vh; }                 /* أكبر شوي على الشاشات الكبيرة جداً */
+}
+.hero-title .ar, .hero-subtext .ar { text-align: start; } /* يتبع اتجاه rtl */
+.hero-title .en, .hero-subtext .en { opacity: .95; }
+
+.hero-subtext { max-width: 720px; }
+
+@media (max-width: 576px) {
+  .hero-title { font-size: calc(1.5rem + 1.2vw); }
+  .hero-subtext { font-size: 1.05rem; }
+}
+

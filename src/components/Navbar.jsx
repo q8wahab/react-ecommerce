@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import MiniCartOffcanvas from "./MiniCartOffcanvas";
 import { useTranslation } from "react-i18next";
 
+
 const Navbar = () => {
   const { t, i18n } = useTranslation();
 
@@ -42,8 +43,24 @@ const Navbar = () => {
       <nav className={navClass}>
         <div className="container">
           {/* left: brand */}
-          <NavLink className="navbar-brand fw-bold fs-4 px-2" to="/">
-            {t("nav.brand")}
+          <NavLink
+            className="navbar-brand fw-bold fs-4 px-2 d-flex align-items-center"
+            to="/"
+          >
+            {/* اللوقو + النص 24ozkw */}
+            <img
+    src={`${process.env.PUBLIC_URL}/assets/dark_logo.png`} // أو "/dark_logo.png" حسب مكان الملف
+    alt="24ozkw logo"
+    width={68}
+    height={68}
+    className="me-2"
+    style={{
+      objectFit: "contain",
+      // عندنا نسخة وحدة غامقة، نخليها مقلوبة بالدارك مود عشان تصير فاتحة وتبين
+      filter: dark ? "invert(1) hue-rotate(180deg)" : "none",
+    }}
+  />
+            <span>24ozkw</span>
           </NavLink>
 
           {/* right: mobile cart (outside collapse) + burger */}

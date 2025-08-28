@@ -29,6 +29,8 @@ import {
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProducts from "./pages/AdminProducts";
 import AdminProductForm from "./pages/AdminProductForm";
+import AdminCategories from "./pages/AdminCategories";
+import AdminOrders from "./pages/AdminOrders";
 import ScrollToTop from "./components/ScrollToTop";
 import { Toaster } from "react-hot-toast";
 
@@ -51,6 +53,7 @@ root.render(
           <Route path="/register" element={<Register />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/wishlist" element={<Wishlist />} />
+          
 
           {/* صفحة النجاح */}
           <Route path="/order-success/:id" element={<OrderSuccess />} />
@@ -60,6 +63,9 @@ root.render(
           <Route path="/admin/products" element={<AdminProducts />} />
           <Route path="/admin/products/new" element={<AdminProductForm />} />
           <Route path="/admin/products/:id/edit" element={<AdminProductForm />} />
+          <Route path="/admin/categories" element={<AdminCategories />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
+
 
           {/* 404 */}
           <Route path="*" element={<PageNotFound />} />

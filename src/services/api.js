@@ -174,13 +174,27 @@ const ApiService = {
   },
   async getProduct(idOrSlug) { return httpRequest(`/products/${idOrSlug}`); },
   async getProductById(idOrSlug) { return httpRequest(`/products/${idOrSlug}`); },
-  async getCategories() { return httpRequest('/categories'); },
+
+  // ===== Categories =====
+  async getCategories(params) { return httpRequest('/categories', { params }); },
+  async getCategory(idOrSlug) { return httpRequest(`/categories/${idOrSlug}`); },
+  async createCategory(payload) { return httpRequest('/categories', { method: 'POST', body: payload }); },
+  async updateCategory(idOrSlug, payload) { return httpRequest(`/categories/${idOrSlug}`, { method: 'PUT', body: payload }); },
+  async deleteCategory(idOrSlug) { return httpRequest(`/categories/${idOrSlug}`, { method: 'DELETE' }); },
 
   // ===== Orders =====
   async createOrder(payload) {
     return httpRequest('/orders', { method: 'POST', body: payload });
   },
   async getOrder(id) { return httpRequest(`/orders/${id}`); },
+  async getOrders(params) { return httpRequest('/orders', { params }); },
+  async updateOrder(idOrSlug, payload) { 
+    // غيّر PUT إلى PATCH إذا باك-إندك يستخدم PATCH
+    return httpRequest(`/orders/${idOrSlug}`, { method: 'PUT', body: payload }); 
+  },
+  async exportOrdersCSV(params) {
+    return downloadFile('/orders/export.csv', { params, filename: 'orders.csv' });
+  },
 
   // ===== CSV =====
   async exportProductsCSV(params) {

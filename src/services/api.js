@@ -71,7 +71,7 @@ async function httpRequest(path, { method = 'GET', body, headers = {}, params, _
       await ApiService.refresh(); // يحاول يحدّث التوكن
       return httpRequest(path, { method, body, headers, params, _retry: true });
     } catch {
-      // فشل الريفريش → نكمل خطأ 401 عشان الصفحة تتعامل (تحويل للّوقين مثلاً)
+      // فشل الريفريش → نكمل خطأ 401
     }
   }
 
@@ -92,7 +92,7 @@ async function httpRequest(path, { method = 'GET', body, headers = {}, params, _
   return data;
 }
 
-// للتنزيلات
+// للتنزيلات (CSV)
 async function downloadFile(path, { params, filename }) {
   const url = buildUrl(path, { ...(params || {}), _ts: Date.now() });
   const res = await fetch(url, {
@@ -123,6 +123,26 @@ async function downloadFile(path, { params, filename }) {
   window.URL.revokeObjectURL(urlBlob);
 }
 
+// ====== PDF (Invoice) ======
+async function getOrderInvoicePdfBlob(orderId) {
+  const token = localStorage.getItem('accessToken');
+  const url = buildUrl(`/orders/${orderId}/invoice.pdf`, { _ts: Date.now() });
+  const res = await fetch(url, {
+    method: 'GET',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/pdf',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    const msg = text || res.statusText || 'Failed to fetch invoice PDF';
+    throw new Error(`${res.status} ${msg}`);
+  }
+  return res.blob();
+}
+
 const ApiService = {
   request: httpRequest,
 
@@ -138,11 +158,9 @@ const ApiService = {
   },
 
   async refresh() {
-    // **يلزم** يكون عندك مسار باك-إند يرجّع accessToken جديد
-    // ويفضّل أنه يعتمد refreshToken محفوظ ككوكي HttpOnly على نفس الدومين
     const data = await fetch(buildUrl('/auth/refresh', { _ts: Date.now() }), {
       method: 'POST',
-      credentials: 'include',        // هنا نرسل الكوكي (لو عندك refreshToken ككوكي)
+      credentials: 'include',
       headers: { Accept: 'application/json' },
     }).then(async (r) => {
       const j = await r.json().catch(() => ({}));
@@ -160,7 +178,7 @@ const ApiService = {
   async logout() {
     try {
       await httpRequest('/auth/logout', { method: 'POST' });
-    } catch {} // تجاهل أي خطأ من السيرفر
+    } catch {}
     localStorage.removeItem('accessToken');
     clearTimeout(refreshTimerId);
     return { success: true };
@@ -183,14 +201,12 @@ const ApiService = {
   async deleteCategory(idOrSlug) { return httpRequest(`/categories/${idOrSlug}`, { method: 'DELETE' }); },
 
   // ===== Orders =====
-  async createOrder(payload) {
-    return httpRequest('/orders', { method: 'POST', body: payload });
-  },
+  async createOrder(payload) { return httpRequest('/orders', { method: 'POST', body: payload }); },
   async getOrder(id) { return httpRequest(`/orders/${id}`); },
   async getOrders(params) { return httpRequest('/orders', { params }); },
-  async updateOrder(idOrSlug, payload) { 
+  async updateOrder(idOrSlug, payload) {
     // غيّر PUT إلى PATCH إذا باك-إندك يستخدم PATCH
-    return httpRequest(`/orders/${idOrSlug}`, { method: 'PUT', body: payload }); 
+    return httpRequest(`/orders/${idOrSlug}`, { method: 'PUT', body: payload });
   },
   async exportOrdersCSV(params) {
     return downloadFile('/orders/export.csv', { params, filename: 'orders.csv' });
@@ -212,6 +228,9 @@ const ApiService = {
     if (!res.ok) throw new Error(data?.error || data?.message || 'Import failed');
     return data;
   },
+
+  // ===== Invoice PDF =====
+  getOrderInvoicePdfBlob,
 };
 
 // جولة أولى: لو في توكن محفوظ، جدول ريفريش

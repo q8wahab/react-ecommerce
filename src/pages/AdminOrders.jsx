@@ -1,3 +1,4 @@
+// src/pages/AdminOrders.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import ApiService from '../services/api';
@@ -8,17 +9,42 @@ const STATUS_OPTIONS = [
   'pending', 'paid', 'processing', 'shipped', 'completed', 'cancelled'
 ];
 
+const PAYMENT_OPTIONS = ['cash', 'knet'];
+
 // Modal بسيط بدون Bootstrap JS
-function OrderModal({ open, onClose, order }) {
+function OrderModal({ open, onClose, order, onOpenInvoice }) {
   if (!open || !order) return null;
 
   const items = order.items || order.lineItems || [];
   const shipping = order.shippingAddress || {};
-  const billing = order.billingAddress || {};
   const customer = order.customer || {};
 
-  const currencyTotal =
+  const totalKwd =
     (order.totalInFils != null ? order.totalInFils / 1000 : order.total) ?? 0;
+
+  // تهيئة عنوان الشحن وفق سكيمتك: area/block/street/avenue/houseNo/notes
+  const shippingLines = (() => {
+    // fallback عام لو جاي بأسلوب line1..country
+    const generic =
+      [shipping.line1, shipping.line2, shipping.city, shipping.state, shipping.postalCode, shipping.country]
+        .filter(Boolean)
+        .join(', ');
+
+    const customParts = [
+      shipping.area ? `Area: ${shipping.area}` : null,
+      shipping.block ? `Block: ${shipping.block}` : null,
+      shipping.street ? `Street: ${shipping.street}` : null,
+      shipping.avenue ? `Avenue: ${shipping.avenue}` : null,
+      shipping.houseNo ? `House: ${shipping.houseNo}` : null,
+      shipping.notes ? `Notes: ${shipping.notes}` : null,
+    ].filter(Boolean);
+
+    const lines = customParts.length ? customParts : (generic ? [generic] : []);
+    return lines.length ? lines : ['-'];
+  })();
+
+  const phone = customer.phone || order.customerPhone || '-';
+  const email = customer.email || order.customerEmail || '-';
 
   return (
     <>
@@ -27,23 +53,37 @@ function OrderModal({ open, onClose, order }) {
         <div className="modal-dialog modal-lg">
           <div className="modal-content">
             <div className="modal-header">
-              <h5 className="modal-title">Order Details — #{String(order._id || order.id).slice(-6)}</h5>
+              <h5 className="modal-title">
+                Order Details — #{String(order._id || order.id).slice(-6)}
+              </h5>
               <button type="button" className="btn-close" aria-label="Close" onClick={onClose}></button>
             </div>
+
             <div className="modal-body">
               <div className="row g-3">
                 <div className="col-md-6">
                   <h6 className="text-muted mb-1">Customer</h6>
                   <div>{customer.name || order.customerName || '-'}</div>
-                  <div className="text-muted small">{customer.email || order.customerEmail || '-'}</div>
-                  <div className="text-muted small">{customer.phone || order.customerPhone || '-'}</div>
+                  <div className="text-muted small">Email: {email}</div>
+                  <div className="text-muted small">Phone: {phone}</div>
                 </div>
+
                 <div className="col-md-6">
                   <h6 className="text-muted mb-1">Order</h6>
-                  <div>Status: <span className="badge bg-secondary">{order.status || order.paymentStatus || 'pending'}</span></div>
-                  <div>Payment: <span className="badge bg-light text-dark">{order.paymentMethod || '-'}</span></div>
+                  <div>
+                    Status{' '}
+                    <span className="badge bg-secondary ms-1">
+                      {order.status || order.paymentStatus || 'pending'}
+                    </span>
+                  </div>
+                  <div>
+                    Payment{' '}
+                    <span className="badge bg-light text-dark ms-1">
+                      {order.paymentMethod || '-'}
+                    </span>
+                  </div>
                   <div>Date: {order.createdAt ? new Date(order.createdAt).toLocaleString() : '-'}</div>
-                  <div className="fw-semibold mt-1">Total: {formatPrice(currencyTotal)}</div>
+                  <div className="fw-semibold mt-1">Total: {formatPrice(totalKwd)}</div>
                 </div>
               </div>
 
@@ -62,7 +102,7 @@ function OrderModal({ open, onClose, order }) {
                     </thead>
                     <tbody>
                       {items.map((it, idx) => {
-                        const title = it.title || it.productTitle || it.product?.title || `Item ${idx+1}`;
+                        const title = it.title || it.productTitle || it.product?.title || `Item ${idx + 1}`;
                         const qty = it.qty ?? it.quantity ?? 1;
                         const price = (it.priceInFils != null ? it.priceInFils / 1000 : it.price) ?? 0;
                         return (
@@ -76,30 +116,38 @@ function OrderModal({ open, onClose, order }) {
                     </tbody>
                   </table>
                 </div>
-              ) : <p className="text-muted">No items.</p>}
+              ) : (
+                <p className="text-muted">No items.</p>
+              )}
 
               <hr />
 
               <div className="row g-3">
-                <div className="col-md-6">
+                <div className="col-md-12">
                   <h6 className="text-muted mb-1">Shipping Address</h6>
                   <div className="small">
-                    {shipping.name || '-'}<br />
-                    {[shipping.line1, shipping.line2, shipping.city, shipping.state, shipping.postalCode, shipping.country].filter(Boolean).join(', ') || '-'}
-                  </div>
-                </div>
-                <div className="col-md-6">
-                  <h6 className="text-muted mb-1">Billing Address</h6>
-                  <div className="small">
-                    {billing.name || '-'}<br />
-                    {[billing.line1, billing.line2, billing.city, billing.state, billing.postalCode, billing.country].filter(Boolean).join(', ') || '-'}
+                    {shipping.name ? <div className="mb-1">{shipping.name}</div> : null}
+                    {shippingLines.map((ln, i) => (
+                      <div key={i}>{ln}</div>
+                    ))}
                   </div>
                 </div>
               </div>
-
             </div>
+
             <div className="modal-footer">
-              <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Close</button>
+              {onOpenInvoice ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => onOpenInvoice(order)}
+                >
+                  Invoice PDF
+                </button>
+              ) : null}
+              <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -134,11 +182,11 @@ const Orders = () => {
         limit,
         status: (opts.status ?? status) || undefined,
         q: (opts.q ?? q) || undefined,
-        sort: '-createdAt'
+        sort: '-createdAt',
       };
 
       const res = await ApiService.getOrders(params);
-      let list = Array.isArray(res) ? res : (res.items || res.data || []);
+      const list = Array.isArray(res) ? res : (res.items || res.data || []);
       setItems(list);
       setTotal(
         res?.total ?? res?.count ?? (Array.isArray(res) ? res.length : list.length)
@@ -186,9 +234,55 @@ const Orders = () => {
           (o._id || o.id) === (order._id || order.id) ? { ...o, status: nextStatus } : o
         )
       );
+
+      // لو نافذة التفاصيل مفتوحة، حدث العرض
+      setSelected((prev) =>
+        prev && (prev._id || prev.id) === (order._id || order.id)
+          ? { ...prev, status: nextStatus }
+          : prev
+      );
     } catch (e) {
       console.error(e);
       toast.error(e?.message || 'Failed to update status');
+    }
+  };
+
+  const changePaymentMethod = async (order, method) => {
+    try {
+      if (!method || !PAYMENT_OPTIONS.includes(method)) return;
+      if ((order.paymentMethod || '').toLowerCase() === method.toLowerCase()) return;
+
+      await ApiService.updateOrder(order._id || order.id, { paymentMethod: method });
+      toast.success('Payment method updated');
+
+      setItems((prev) =>
+        prev.map((o) =>
+          (o._id || o.id) === (order._id || order.id) ? { ...o, paymentMethod: method } : o
+        )
+      );
+
+      // لو نافذة التفاصيل مفتوحة، حدث العرض
+      setSelected((prev) =>
+        prev && (prev._id || prev.id) === (order._id || order.id)
+          ? { ...prev, paymentMethod: method }
+          : prev
+      );
+    } catch (e) {
+      console.error(e);
+      toast.error(e?.message || 'Failed to update payment method');
+    }
+  };
+
+  const openInvoicePdf = async (order) => {
+    try {
+      const blob = await ApiService.getOrderInvoicePdfBlob(order._id || order.id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener');
+      // تنظيف بعد دقيقة
+      setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
+    } catch (e) {
+      console.error(e);
+      toast.error(e?.message || 'Failed to open invoice');
     }
   };
 
@@ -273,27 +367,27 @@ const Orders = () => {
                     <th>Total</th>
                     <th>Status</th>
                     <th>Payment</th>
-                    <th style={{ width: 180 }}>Actions</th>
+                    <th style={{ width: 240 }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((o, idx) => {
+                  {items.map((o) => {
                     const id = o._id || o.id;
                     const shortId = String(id).slice(-6);
                     const when = o.createdAt ? new Date(o.createdAt).toLocaleString() : '-';
-                    const customer = o.customer?.name || o.customerName || '-';
+                    const customerName = o.customer?.name || o.customerName || '-';
                     const email = o.customer?.email || o.customerEmail || '';
                     const total =
                       (o.totalInFils != null ? o.totalInFils / 1000 : o.total) ?? 0;
                     const statusVal = o.status || o.paymentStatus || 'pending';
-                    const payment = o.paymentMethod || o.paymentProvider || '-';
+                    const paymentVal = (o.paymentMethod || '').toLowerCase();
 
                     return (
                       <tr key={id}>
                         <td><code>{shortId}</code></td>
                         <td>{when}</td>
                         <td>
-                          <div>{customer}</div>
+                          <div>{customerName}</div>
                           {email ? <div className="text-muted small">{email}</div> : null}
                         </td>
                         <td>{formatPrice(total)}</td>
@@ -306,7 +400,18 @@ const Orders = () => {
                             {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
                         </td>
-                        <td><span className="badge bg-light text-dark">{payment}</span></td>
+                        <td>
+                          <select
+                            className="form-select form-select-sm"
+                            value={PAYMENT_OPTIONS.includes(paymentVal) ? paymentVal : ''}
+                            onChange={(e) => changePaymentMethod(o, e.target.value)}
+                          >
+                            <option value="">—</option>
+                            {PAYMENT_OPTIONS.map(p => (
+                              <option key={p} value={p}>{p}</option>
+                            ))}
+                          </select>
+                        </td>
                         <td>
                           <div className="d-flex gap-2">
                             <button
@@ -314,6 +419,13 @@ const Orders = () => {
                               onClick={() => openDetails(o)}
                             >
                               Details
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => openInvoicePdf(o)}
+                              title="Invoice PDF"
+                            >
+                              Invoice PDF
                             </button>
                           </div>
                         </td>
@@ -346,7 +458,12 @@ const Orders = () => {
         </div>
       </div>
 
-      <OrderModal open={modalOpen} onClose={closeDetails} order={selected} />
+      <OrderModal
+        open={modalOpen}
+        onClose={closeDetails}
+        order={selected}
+        onOpenInvoice={openInvoicePdf}
+      />
     </AdminLayout>
   );
 };

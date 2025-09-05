@@ -9,6 +9,7 @@
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.11.0",
     "bootstrap": "^5.3.7",
+    "dotenv": "^17.2.2",
     "env": "^0.0.2",
     "font-awesome": "^4.7.0",
     "i18next": "^23.16.8",

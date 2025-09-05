@@ -4,7 +4,6 @@ import { useSelector } from "react-redux";
 import MiniCartOffcanvas from "./MiniCartOffcanvas";
 import { useTranslation } from "react-i18next";
 
-
 const Navbar = () => {
   const { t, i18n } = useTranslation();
 
@@ -49,17 +48,17 @@ const Navbar = () => {
           >
             {/* اللوقو + النص 24ozkw */}
             <img
-    src={`${process.env.PUBLIC_URL}/assets/dark_logo.png`} // أو "/dark_logo.png" حسب مكان الملف
-    alt="24ozkw logo"
-    width={68}
-    height={68}
-    className="me-2"
-    style={{
-      objectFit: "contain",
-      // عندنا نسخة وحدة غامقة، نخليها مقلوبة بالدارك مود عشان تصير فاتحة وتبين
-      filter: dark ? "invert(1) hue-rotate(180deg)" : "none",
-    }}
-  />
+              src={`${process.env.PUBLIC_URL}/assets/dark_logo.png`} // أو "/dark_logo.png" حسب مكان الملف
+              alt="24ozkw logo"
+              width={68}
+              height={68}
+              className="me-2"
+              style={{
+                objectFit: "contain",
+                // عندنا نسخة وحدة غامقة، نخليها مقلوبة بالدارك مود عشان تصير فاتحة وتبين
+                filter: dark ? "invert(1) hue-rotate(180deg)" : "none",
+              }}
+            />
             <span>24ozkw</span>
           </NavLink>
 
@@ -108,17 +107,21 @@ const Navbar = () => {
             {/* left links */}
             <ul className="navbar-nav me-auto my-2 text-center">
               <li className="nav-item">
-                <NavLink className="nav-link" to="/">{t("nav.home")}</NavLink>
+                <NavLink className="nav-link" to="/">
+                  {t("nav.home")}
+                </NavLink>
               </li>
               <li className="nav-item">
-                <NavLink className="nav-link" to="/products">{t("nav.products")}</NavLink>
+                <NavLink className="nav-link" to="/products">
+                  {t("nav.products")}
+                </NavLink>
               </li>
               {/* <li className="nav-item">
                 <NavLink className="nav-link" to="/about">{t("nav.about")}</NavLink>
               </li> */}
-              <li className="nav-item">
+              {/* <li className="nav-item">
                 <NavLink className="nav-link" to="/contact">{t("nav.contact")}</NavLink>
-              </li>
+              </li> */}
             </ul>
 
             {/* right inside collapse: language + auth + desktop cart + wishlist */}

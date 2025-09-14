@@ -12,7 +12,7 @@ const Footer = () => {
       <footer className="mb-0 text-center">
         <div className="d-flex align-items-center justify-content-center pb-5">
           <div className="col-md-6">
-            <p className="mb-3 mb-md-0">Made with ❤️</p>
+            <p className="mb-3 mb-md-0">@24ozKw</p>
 
             {/* Icons from /public/assets/icons */}
             <div className="d-flex justify-content-center align-items-center mt-3">

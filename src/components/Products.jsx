@@ -22,12 +22,12 @@ const Products = () => {
   // بحث + ترتيب
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [sortBy, setSortBy] = useState("none"); // none | priceAsc | priceDesc | ratingDesc | titleAsc
+  const [sortBy, setSortBy] = useState("none");
   const [selectedCategory, setSelectedCategory] = useState("");
 
   // ترقيم الصفحات
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(9); // 6 / 9 / 12
+  const [pageSize, setPageSize] = useState(9);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -41,7 +41,7 @@ const Products = () => {
     const cartProduct = {
       id: product._id || product.id,
       title: product.title,
-      price: product.price, // KWD
+      price: product.price,
       image: product.image,
       category: product.category,
       rating: product.rating,
@@ -50,13 +50,11 @@ const Products = () => {
     toast.success(t("productCard.added_to_cart", "Added to cart"));
   };
 
-  // Debounce للبحث
   useEffect(() => {
     const tmr = setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => clearTimeout(tmr);
   }, [search]);
 
-  // Load categories
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -72,7 +70,6 @@ const Products = () => {
     };
   }, []);
 
-  // Load products
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -274,15 +271,18 @@ const Products = () => {
                         -{product.discountPercent}%
                       </span>
                     )}
-                    <img
-                      className="img-fluid"
-                      src={product.image || "/placeholder-image.jpg"}
-                      alt={product.title}
-                      style={{ maxHeight: "100%" }}
-                      onError={(e) => {
-                        e.currentTarget.src = "/placeholder-image.jpg";
-                      }}
-                    />
+                    {/* الصورة صارت clickable */}
+                    <Link to={`/product/${product.id}`} aria-label={`View ${product.title}`} style={{ cursor: "pointer" }}>
+                      <img
+                        className="img-fluid"
+                        src={product.image || "/placeholder-image.jpg"}
+                        alt={product.title}
+                        style={{ maxHeight: "100%" }}
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder-image.jpg";
+                        }}
+                      />
+                    </Link>
                   </div>
 
                   <div className="card-body d-flex flex-column">
@@ -294,7 +294,6 @@ const Products = () => {
                     </p>
 
                     <div className="mt-auto">
-                      {/* السعر القديم + الجديد */}
                       <div className="mb-2">
                         {product.oldPrice ? (
                           <>
@@ -308,7 +307,6 @@ const Products = () => {
                         )}
                       </div>
 
-                      {/* الأزرار */}
                       <div className="d-flex justify-content-center gap-2">
                         <Link to={`/product/${product.id}`} className="btn btn-outline-dark btn-sm">
                           {t("product.details", "Details")}
@@ -345,7 +343,6 @@ const Products = () => {
         )}
       </div>
 
-      {/* أزرار الترقيم */}
       {totalPages > 1 && (
         <nav aria-label="Products pages" className="mt-2">
           <ul className="pagination justify-content-center">

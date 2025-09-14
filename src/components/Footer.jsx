@@ -2,9 +2,10 @@ import React from "react";
 
 const Footer = () => {
   const icons = {
-    instagram: `${process.env.PUBLIC_URL}/assets/instagram.svg`,
-    whatsapp: `${process.env.PUBLIC_URL}/assets/whatsapp.svg`,
-  };
+  instagram: "/assets/Instagram.svg",
+  whatsapp: "/assets/whatsapp.svg",
+};
+
 
   return (
     <>

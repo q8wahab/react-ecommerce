@@ -9,6 +9,7 @@ import "./theme.css";
 // (اختياري) عندك استيرادين للـ CSS تبع Bootstrap — يكفي واحد
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js"; // لازم للبورجر/collapse
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import Wishlist from "./pages/Wishlist";
 
@@ -73,6 +74,7 @@ root.render(
 
         {/* يفضّل توستر يكون داخل Provider عشان ياخذ الثيم والكونتكست */}
         <Toaster />
+         <SpeedInsights />
       </Provider>
     </ScrollToTop>
   </BrowserRouter>

@@ -255,35 +255,29 @@ const Products = () => {
             const wished = inWishlist(product.id);
             return (
               <div id={product.id} key={product.id} className="col-md-4 col-sm-6 col-12 mb-4">
-                <div className="card text-center h-100 d-flex">
-                  {/* صورة + شارة الخصم */}
-                  <div
-                    className="p-3 position-relative"
-                    style={{
-                      height: 300,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                <div className="card text-center h-100 d-flex product-card">
+                  {/* صورة + شارة الخصم (صار clickable) */}
+                  <Link
+                    to={`/product/${product.id}`}
+                    className="product-img-wrap position-relative p-3"
+                    style={{ display: "block" }}
+                    aria-label={`View ${product.title}`}
                   >
                     {product.discountPercent > 0 && (
                       <span className="badge bg-danger position-absolute top-0 start-0 m-2">
                         -{product.discountPercent}%
                       </span>
                     )}
-                    {/* الصورة صارت clickable */}
-                    <Link to={`/product/${product.id}`} aria-label={`View ${product.title}`} style={{ cursor: "pointer" }}>
-                      <img
-                        className="img-fluid"
-                        src={product.image || "/placeholder-image.jpg"}
-                        alt={product.title}
-                        style={{ maxHeight: "100%" }}
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder-image.jpg";
-                        }}
-                      />
-                    </Link>
-                  </div>
+                    <img
+                      className="product-img"
+                      src={product.image || "/placeholder-image.jpg"}
+                      alt={product.title}
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = "/placeholder-image.jpg";
+                      }}
+                    />
+                  </Link>
 
                   <div className="card-body d-flex flex-column">
                     <h5 className="card-title">

@@ -21,6 +21,9 @@ const Product = () => {
   const [loading, setLoading] = useState(false);
   const [loading2, setLoading2] = useState(false);
 
+  // 👉 new: which image is selected in gallery
+  const [selectedIdx, setSelectedIdx] = useState(0);
+
   const dispatch = useDispatch();
   const wishlist = useSelector((s) => s.wishlist || []);
   const isWishlisted = wishlist.some(
@@ -47,17 +50,31 @@ const Product = () => {
           data.price ??
           0;
 
-        const imageUrl =
-          data.image ||
-          data.images?.find((img) => img?.isPrimary)?.url ||
-          data.images?.[0]?.url ||
-          "/placeholder-image.jpg";
+        // Build an images array: primary first, then others, then single image, then placeholder
+        const imagesList = [];
+        if (Array.isArray(data.images) && data.images.length) {
+          const primary = data.images.find((img) => img?.isPrimary && img?.url);
+          if (primary?.url) imagesList.push(primary.url);
+          data.images.forEach((img) => {
+            const u = img?.url;
+            if (u && !imagesList.includes(u)) imagesList.push(u);
+          });
+        }
+        if (data.image && !imagesList.includes(data.image)) {
+          imagesList.push(data.image);
+        }
+        if (imagesList.length === 0) imagesList.push("/placeholder-image.jpg");
 
         const transformedProduct = {
           id: data._id ?? data.id ?? id,
           title: data.title ?? "",
           price: Number.isFinite(priceRaw) ? priceRaw : 0,
-          image: imageUrl,
+          image:
+            data.image ||
+            data.images?.find((img) => img?.isPrimary)?.url ||
+            data.images?.[0]?.url ||
+            "/placeholder-image.jpg",
+          images: imagesList, // 👉 new
           category: data.category?.name ?? data.category ?? "-",
           rating: data.rating?.rate ?? data.rating ?? null,
           description: data.description ?? "",
@@ -65,6 +82,7 @@ const Product = () => {
         };
 
         setProduct(transformedProduct);
+        setSelectedIdx(0); // reset selected image when product changes
         setLoading(false);
 
         // منتجات مشابهة (اختياري)
@@ -197,6 +215,12 @@ const Product = () => {
     </div>
   );
 
+  const images = Array.isArray(product.images) && product.images.length
+    ? product.images
+    : [product.image || "/placeholder-image.jpg"];
+
+  const mainSrc = images[selectedIdx] || "/placeholder-image.jpg";
+
   return (
     <>
       <Navbar />
@@ -206,18 +230,46 @@ const Product = () => {
             <Loading />
           ) : (
             <>
-              <div className="col-md-6 text-center">
-                <img
-                  src={product.image || "/placeholder-image.jpg"}
-                  alt={product.title}
-                  width="400"
-                  height="400"
-                  onError={(e) => {
-                    e.currentTarget.src = "/placeholder-image.jpg";
-                  }}
-                  style={{ objectFit: "contain" }}
-                />
+              {/* LEFT: gallery */}
+              <div className="col-md-6">
+                <div className="product-gallery">
+                  <div className="product-gallery-main">
+                    <img
+                      src={mainSrc}
+                      alt={product.title}
+                      className="product-gallery-main-img"
+                      width="400"
+                      height="400"
+                      onError={(e) => {
+                        e.currentTarget.src = "/placeholder-image.jpg";
+                      }}
+                    />
+                  </div>
+
+                  {images.length > 1 && (
+                    <div className="product-thumbs">
+                      {images.map((src, i) => (
+                        <button
+                          key={src + i}
+                          type="button"
+                          className={`product-thumb ${i === selectedIdx ? "active" : ""}`}
+                          onClick={() => setSelectedIdx(i)}
+                          aria-label={`Thumbnail ${i + 1}`}
+                          title={`Image ${i + 1}`}
+                        >
+                          <img
+                            src={src}
+                            alt={`${product.title} thumb ${i + 1}`}
+                            onError={(e) => (e.currentTarget.src = "/placeholder-image.jpg")}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* RIGHT: your existing details */}
               <div className="col-md-6 py-5">
                 <h4 className="text-uppercase text-muted">{product.category}</h4>
                 <h1 className="display-5">{product.title}</h1>
@@ -228,7 +280,6 @@ const Product = () => {
                 ) : null}
                 <h3 className="display-6 my-4">{formatPrice(product.price)}</h3>
 
-                {/* وصف المنتج: Markdown + GFM (بدون className على ReactMarkdown) */}
                 <div className="lead product-desc">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {product.description || ""}
@@ -259,13 +310,9 @@ const Product = () => {
 
                   <button
                     type="button"
-                    className={`btn ${
-                      isWishlisted ? "btn-danger" : "btn-outline-danger"
-                    }`}
+                    className={`btn ${isWishlisted ? "btn-danger" : "btn-outline-danger"}`}
                     onClick={() => onToggleWishlist(product)}
-                    title={
-                      isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"
-                    }
+                    title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
                     aria-pressed={isWishlisted}
                   >
                     <i className="fa fa-heart" />

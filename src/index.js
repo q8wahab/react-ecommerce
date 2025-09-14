@@ -1,14 +1,13 @@
 import './il8n'; // استيراد ملف الترجمة
 import React from "react";
 import ReactDOM from "react-dom/client";
-import "../node_modules/font-awesome/css/font-awesome.min.css";
-import "../node_modules/bootstrap/dist/css/bootstrap.min.css";
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
 import store from "./store";
 import "./theme.css";
 // (اختياري) عندك استيرادين للـ CSS تبع Bootstrap — يكفي واحد
-// import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js"; // لازم للبورجر/collapse
 
 import Wishlist from "./pages/Wishlist";
